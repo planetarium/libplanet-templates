@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Planetarium",
+  "classifications": ["libplanet", "blockchain", "node"],
+  "name": "Libplanet Headless Node",
+  "shortName": "planet-node",
+  "identity": "Libplanet.Templates.PlanetNode",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "PlanetNode",
+  "preferNameDirectory": true
+}
