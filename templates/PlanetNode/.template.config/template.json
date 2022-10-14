@@ -10,5 +10,10 @@
     "type": "project"
   },
   "sourceName": "PlanetNode",
-  "preferNameDirectory": true
+  "preferNameDirectory": true,
+  "guids": [
+    "FAE04EC0-301F-11D3-BF4B-00C04F79EFBC",
+    "72CE6C96-E068-4BFE-8561-CF57212FE7D2",
+    "75D87A03-FB5C-410B-8921-A560E63A3B93"
+  ]
 }
