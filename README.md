@@ -14,7 +14,7 @@ dotnet new --install ./libplanet-templates/
 Creating a new project from a template:
 
 ~~~~ console
-dotnet new planet-node --name MyNode
+dotnet new planet-node --name MyNode --TokenTicker MNT
 cd MyNode
 dotnet build
 ~~~~
