@@ -23,6 +23,13 @@
       "dataType": "string",
       "replaces": "PNG",
       "isRequired": true
+    },
+    "TokenDecimalPlaces": {
+      "description": "The number of decimal places your token uses.  In other words, the number of digits after the decimal point, e.g., 2 for USD, 8 for BTC, 18 for ETH.",
+      "type": "parameter",
+      "dataType": "int",
+      "replaces": "18",
+      "defaultValue": "18"
     }
   }
 }
