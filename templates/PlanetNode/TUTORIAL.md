@@ -47,7 +47,7 @@ adjust the token distribution scheme in `Program.cs`.
                     {
                         // Replace with your account address (no "0x" prefix).
                         // 1000 is mint amount.
-                        [new Address("25924579F8f1D6a0edE9aa86F9522e44EbC74C26")] = Currencies.PlanetNodeGold * 1000,
+                        [new Address("25924579F8f1D6a0edE9aa86F9522e44EbC74C26")] = Currencies.KeyCurrency * 1000,
                     }
                 )
             }

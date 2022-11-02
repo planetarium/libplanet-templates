@@ -38,7 +38,7 @@ public class ApplicationQuery : ObjectGraphType
                 var accountAddress = new Address(context.GetArgument<string>("address"));
                 FungibleAssetValue asset = blockChain.GetBalance(
                     accountAddress,
-                    Currencies.PlanetNodeGold
+                    Currencies.KeyCurrency
                 );
 
                 return asset.ToString();

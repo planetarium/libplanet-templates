@@ -4,5 +4,5 @@ namespace PlanetNode;
 
 public static class Currencies
 {
-    public static Currency PlanetNodeGold => Currency.Uncapped("PNG", 18, null);
+    public static readonly Currency KeyCurrency = Currency.Uncapped("PNG", 18, null);
 }

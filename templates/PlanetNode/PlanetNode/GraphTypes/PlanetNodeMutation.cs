@@ -60,7 +60,7 @@ public class PlanetNodeMutation : ObjectGraphType
                 var action = new Transfer(
                     recipient,
                     FungibleAssetValue.Parse(
-                        Currencies.PlanetNodeGold,
+                        Currencies.KeyCurrency,
                         amount
                     )
                 );
