@@ -1,4 +1,3 @@
-using Libplanet;
 using Libplanet.Assets;
 
 namespace PlanetNode;
