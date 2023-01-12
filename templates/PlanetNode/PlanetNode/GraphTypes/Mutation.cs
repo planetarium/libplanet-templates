@@ -10,11 +10,16 @@ using Libplanet.Explorer.GraphTypes;
 using Libplanet.Explorer.Mutations;
 using PlanetNode.Action;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PlanetNode.GraphTypes;
 
 public class Mutation : ObjectGraphType
 {
+    [SuppressMessage(
+        "StyleCop.CSharp.ReadabilityRules",
+        "SA1118:ParameterMustNotSpanMultipleLines",
+        Justification = "GraphQL docs require long lines of text.")]
     public Mutation(BlockChain<PolymorphicAction<BaseAction>> blockChain)
     {
         Field<TransactionMutation<PolymorphicAction<BaseAction>>>(
@@ -35,20 +40,20 @@ public class Mutation : ObjectGraphType
             arguments: new QueryArguments(
                 new QueryArgument<NonNullGraphType<StringGraphType>>
                 {
-                	    Name = "recipient",
-                	    Description = "The recipient's 40-hex address.",
-                	},
+                    Name = "recipient",
+                    Description = "The recipient's 40-hex address.",
+                },
                 new QueryArgument<NonNullGraphType<StringGraphType>>
                 {
-                	    Name = "amount",
-                	    Description = "The amount to transfer in PNG.",
-                	},
+                    Name = "amount",
+                    Description = "The amount to transfer in PNG.",
+                },
                 new QueryArgument<NonNullGraphType<StringGraphType>>
                 {
-                	    Name = "privateKeyHex",
-                	    Description = "A hex-encoded private key of the sender.  A made " +
-                	        "transaction will be signed using this key.",
-                	}
+                    Name = "privateKeyHex",
+                    Description = "A hex-encoded private key of the sender.  A made " +
+                        "transaction will be signed using this key.",
+                }
             ),
             resolve: context =>
             {

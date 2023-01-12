@@ -64,7 +64,7 @@ public static class LibplanetServicesExtensions
         services.AddSingleton(_ => configuration);
 
         BoundPeer[] peers = configuration.PeerStrings is { } ? configuration.PeerStrings.
-            Select(BoundPeer.ParsePeer).ToArray() : new BoundPeer[] { };
+            Select(BoundPeer.ParsePeer).ToArray() : Array.Empty<BoundPeer>();
 
         services.AddHostedService(provider =>
             new SwarmService<T>(

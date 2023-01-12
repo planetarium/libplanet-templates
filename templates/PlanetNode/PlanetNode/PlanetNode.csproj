@@ -30,7 +30,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <CodeAnalysisRuleSet>../PlanetNode.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\PlanetNode.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
 </Project>

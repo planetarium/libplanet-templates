@@ -6,22 +6,19 @@ using Libplanet.Assets;
 using Libplanet.Blockchain;
 using Libplanet.Net;
 using PlanetNode.Action;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PlanetNode.GraphTypes;
 
 public class Query : ObjectGraphType
 {
-    private string getPeerString(BoundPeer peer)
-    {
-        var pubKey = peer.PublicKey.ToString();
-        var hostAndPort = peer.ToString().Split('/')[1];
-        var host = hostAndPort.Split(':')[0];
-        var port = hostAndPort.Split(':')[1];
-        return $"{pubKey},{host},{port}";
-    }
-
-    public Query(BlockChain<PolymorphicAction<BaseAction>> blockChain
-    , Swarm<PolymorphicAction<BaseAction>> _swarm)
+    [SuppressMessage(
+        "StyleCop.CSharp.ReadabilityRules",
+        "SA1118:ParameterMustNotSpanMultipleLines",
+        Justification = "GraphQL docs require long lines of text.")]
+    public Query(
+        BlockChain<PolymorphicAction<BaseAction>> blockChain,
+        Swarm<PolymorphicAction<BaseAction>> swarm)
     {
         Field<StringGraphType>(
             "asset",
@@ -50,11 +47,20 @@ public class Query : ObjectGraphType
             "peerString",
             resolve: context =>
             {
-                var peer = _swarm.AsPeer;
-                var peerString = getPeerString(peer);
+                var peer = swarm.AsPeer;
+                var peerString = GetPeerString(peer);
 
                 return peerString;
             }
         );
+    }
+
+    private static string GetPeerString(BoundPeer peer)
+    {
+        var pubKey = peer.PublicKey.ToString();
+        var hostAndPort = peer.ToString().Split('/')[1];
+        var host = hostAndPort.Split(':')[0];
+        var port = hostAndPort.Split(':')[1];
+        return $"{pubKey},{host},{port}";
     }
 }
