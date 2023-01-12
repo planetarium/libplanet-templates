@@ -407,18 +407,16 @@ You can also see the miner node respond in a corresponding manner. Now the secon
 
 In appsettings.peer.json, the second node is set to use 38081/tcp port for the GraphQL server. We will query the two nodes for the same block to see if the nodes are in sync.
 
-Go to the GraphQL Playground of the miner node at http://localhost:38080/ui/playground, and query for the tip:
+Go to the GraphQL Playground of the miner node at http://localhost:38080/ui/playground, change the endpoint to http://localhost:38080/graphql/explorer and query for the tip:
 
 ```gql
 query
 {
-  explorer {
-    blockQuery {
-      blocks(desc: true, offset: 0, limit: 1)
-      {
-        hash
-        index
-      }
+  blockQuery {
+    blocks(desc: true, offset: 0, limit: 1)
+    {
+      hash
+      index
     }
   }
 }
@@ -429,15 +427,13 @@ It should respond in the following manner:
 ```json
 {
   "data": {
-    "explorer": {
-      "blockQuery": {
-        "blocks": [
-          {
-            "hash": "03eb151050efabe9436c12f45efa6e9a67da2d4be6a8870025001cb4fcba2618",
-            "index": 777
-          }
-        ]
-      }
+    "blockQuery": {
+      "blocks": [
+        {
+          "hash": "03eb151050efabe9436c12f45efa6e9a67da2d4be6a8870025001cb4fcba2618",
+          "index": 777
+        }
+      ]
     }
   }
 }
@@ -447,12 +443,10 @@ Take note of the block hash. Now, go to the GraphQL Playground in the second nod
 
 ```gql
 query {
-  explorer {
-    blockQuery {
-   	  block(hash: "03eb151050efabe9436c12f45efa6e9a67da2d4be6a8870025001cb4fcba2618")
-      {
-        index
-      }
+  blockQuery {
+    block(hash: "03eb151050efabe9436c12f45efa6e9a67da2d4be6a8870025001cb4fcba2618")
+    {
+      index
     }
   }
 }
@@ -463,11 +457,9 @@ You can see in the result that the block is on the same height in the second nod
 ```json
 {
   "data": {
-    "explorer": {
-      "blockQuery": {
-        "block": {
-          "index": 777
-        }
+    "blockQuery": {
+      "block": {
+        "index": 777
       }
     }
   }
@@ -539,16 +531,13 @@ To see if this transaction is successfully included in a block, query the second
 ```graphql
 query
 {
-  explorer
+  transactionQuery
   {
-    transactionQuery
+    transactionResult (txId:"d9a5d7638350f3b38cde81772f7bf147ac67a73b20893922ae89ddaeb52c246f")
     {
-      transactionResult (txId:"d9a5d7638350f3b38cde81772f7bf147ac67a73b20893922ae89ddaeb52c246f")
-      {
-        txStatus
-        blockIndex
-        blockHash
-      }
+      txStatus
+      blockIndex
+      blockHash
     }
   }
 }
@@ -559,13 +548,11 @@ If the transaction is in a block on the chain, it will respond in the following 
 ```json
 {
   "data": {
-    "explorer": {
-      "transactionQuery": {
-        "transactionResult": {
-          "txStatus": "SUCCESS",
-          "blockIndex": 1554,
-          "blockHash": "4ecdb169992d8c15522845fd08368d32273042726ad83f8de70050d24404fbfe"
-        }
+    "transactionQuery": {
+      "transactionResult": {
+        "txStatus": "SUCCESS",
+        "blockIndex": 1554,
+        "blockHash": "4ecdb169992d8c15522845fd08368d32273042726ad83f8de70050d24404fbfe"
       }
     }
   }

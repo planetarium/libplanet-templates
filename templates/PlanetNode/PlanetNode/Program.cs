@@ -9,7 +9,6 @@ using Libplanet.Action;
 using Libplanet.Assets;
 using Libplanet.Explorer.Interfaces;
 using Libplanet.Explorer.Queries;
-using Libplanet.Explorer.Schemas;
 using Libplanet.Extensions.Cocona.Commands;
 using Libplanet.Headless;
 using Libplanet.Headless.Hosting;
