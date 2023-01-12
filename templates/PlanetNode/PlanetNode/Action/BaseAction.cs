@@ -3,7 +3,7 @@ using Libplanet.Action;
 
 namespace PlanetNode.Action;
 
-public abstract class PlanetAction : IAction
+public abstract class BaseAction : IAction
 {
     public abstract IValue PlainValue { get; }
 

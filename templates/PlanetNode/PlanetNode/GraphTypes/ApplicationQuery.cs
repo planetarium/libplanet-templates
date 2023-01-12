@@ -20,8 +20,8 @@ public class ApplicationQuery : ObjectGraphType
         return $"{pubKey},{host},{port}";
     }
 
-    public ApplicationQuery(BlockChain<PolymorphicAction<PlanetAction>> blockChain
-    , Swarm<PolymorphicAction<PlanetAction>> _swarm)
+    public ApplicationQuery(BlockChain<PolymorphicAction<BaseAction>> blockChain
+    , Swarm<PolymorphicAction<BaseAction>> _swarm)
     {
         Field<StringGraphType>(
             "asset",

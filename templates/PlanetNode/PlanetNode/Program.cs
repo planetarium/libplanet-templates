@@ -20,7 +20,7 @@ using Serilog;
 using System.Collections.Immutable;
 using System.Net;
 
-using PlanetExplorerSchema = Libplanet.Explorer.Schemas.LibplanetExplorerSchema<Libplanet.Action.PolymorphicAction<PlanetNode.Action.PlanetAction>>;
+using PlanetExplorerSchema = Libplanet.Explorer.Schemas.LibplanetExplorerSchema<Libplanet.Action.PolymorphicAction<PlanetNode.Action.BaseAction>>;
 
 var app = CoconaApp.Create();
 
@@ -45,7 +45,7 @@ app.AddCommand(() =>
     builder.Services
         .AddLibplanet(
             headlessConfig,
-            new PolymorphicAction<PlanetAction>[]
+            new PolymorphicAction<BaseAction>[]
             {
                 new InitializeStates(
                     new Dictionary<Address, FungibleAssetValue>
@@ -61,7 +61,7 @@ app.AddCommand(() =>
             builder
                 .AddSchema<PlanetNodeSchema>()
                 .AddSchema<PlanetExplorerSchema>()
-                .AddGraphTypes(typeof(ExplorerQuery<PolymorphicAction<PlanetAction>>).Assembly)
+                .AddGraphTypes(typeof(ExplorerQuery<PolymorphicAction<BaseAction>>).Assembly)
                 .AddGraphTypes(typeof(PlanetNodeQuery).Assembly)
                 .AddUserContextBuilder<ExplorerContextBuilder>()
                 .AddSystemTextJson();
@@ -72,7 +72,7 @@ app.AddCommand(() =>
         .AddSingleton<PlanetNodeMutation>()
         .AddSingleton<GraphQLHttpMiddleware<PlanetNodeSchema>>()
         .AddSingleton<GraphQLHttpMiddleware<PlanetExplorerSchema>>()
-        .AddSingleton<IBlockChainContext<PolymorphicAction<PlanetAction>>, ExplorerContext>();
+        .AddSingleton<IBlockChainContext<PolymorphicAction<BaseAction>>, ExplorerContext>();
 
     if (
         headlessConfig.GraphQLHost is { } graphqlHost &&

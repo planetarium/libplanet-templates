@@ -15,9 +15,9 @@ namespace PlanetNode.GraphTypes;
 
 public class PlanetNodeMutation : ObjectGraphType
 {
-    public PlanetNodeMutation(BlockChain<PolymorphicAction<PlanetAction>> blockChain)
+    public PlanetNodeMutation(BlockChain<PolymorphicAction<BaseAction>> blockChain)
     {
-        Field<TransactionMutation<PolymorphicAction<PlanetAction>>>(
+        Field<TransactionMutation<PolymorphicAction<BaseAction>>>(
             "transaction",
             description: "Adds a transaction to the pending list so that a next block to be " +
                 "mined may contain the given transaction.",
@@ -26,7 +26,7 @@ public class PlanetNodeMutation : ObjectGraphType
 
         // TODO: This mutation should be upstreamed to Libplanet.Explorer so that any native tokens
         // can work together with this mutation:
-        Field<TransactionType<PolymorphicAction<PlanetAction>>>(
+        Field<TransactionType<PolymorphicAction<BaseAction>>>(
             "transferAsset",
             description: "Transfers the given amount of PNG from the account of the specified " +
                 "privateKeyHex to the specified recipient.  A made transaction is signed using " +

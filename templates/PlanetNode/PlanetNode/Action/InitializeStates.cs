@@ -7,7 +7,7 @@ using Libplanet.Headless.Extensions;
 namespace PlanetNode.Action;
 
 [ActionType(nameof(InitializeStates))]
-public class InitializeStates : PlanetAction
+public class InitializeStates : BaseAction
 {
     private Dictionary<Address, FungibleAssetValue> _assets;
 

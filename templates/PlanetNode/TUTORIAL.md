@@ -38,9 +38,9 @@ adjust the token distribution scheme in `Program.cs`.
 
 ```csharp
     builder.Services
-        .AddLibplanet<PolymorphicAction<PlanetAction>>(
+        .AddLibplanet<PolymorphicAction<BaseAction>>(
             headlessConfig,
-            new PolymorphicAction<PlanetAction>[]
+            new PolymorphicAction<BaseAction>[]
             {
                 new InitializeStates(
                     new Dictionary<Address, FungibleAssetValue>
@@ -102,7 +102,7 @@ Transferring Assets
 
 ### Enabling mining
 
-By default, planet-node does not start the mining task (`MinerService<PlanetAction>`). To start the miner, you need to provide it with a private key.
+By default, planet-node does not start the mining task (`MinerService<BaseAction>`). To start the miner, you need to provide it with a private key.
 
 Execute the following commands to generate a new private key for the miner.
 

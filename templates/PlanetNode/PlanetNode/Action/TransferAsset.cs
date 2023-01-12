@@ -12,7 +12,7 @@ namespace PlanetNode.Action;
 /// an example of composing custom actions.
 /// </summary>
 [ActionType(nameof(TransferAsset))]
-public class TransferAsset : PlanetAction
+public class TransferAsset : BaseAction
 {
     public TransferAsset()
     {
