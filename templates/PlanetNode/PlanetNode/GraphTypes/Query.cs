@@ -44,6 +44,8 @@ public class Query : ObjectGraphType
                 return asset.ToString();
             }
         );
+
+        // TODO: Move to Libplanet.Explorer or Node API.
         Field<StringGraphType>(
             "peerString",
             resolve: context =>
