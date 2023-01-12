@@ -9,7 +9,7 @@ using PlanetNode.Action;
 
 namespace PlanetNode.GraphTypes;
 
-public class ApplicationQuery : ObjectGraphType
+public class Query : ObjectGraphType
 {
     private string getPeerString(BoundPeer peer)
     {
@@ -20,7 +20,7 @@ public class ApplicationQuery : ObjectGraphType
         return $"{pubKey},{host},{port}";
     }
 
-    public ApplicationQuery(BlockChain<PolymorphicAction<BaseAction>> blockChain
+    public Query(BlockChain<PolymorphicAction<BaseAction>> blockChain
     , Swarm<PolymorphicAction<BaseAction>> _swarm)
     {
         Field<StringGraphType>(

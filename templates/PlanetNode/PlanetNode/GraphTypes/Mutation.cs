@@ -13,9 +13,9 @@ using System.Collections.Immutable;
 
 namespace PlanetNode.GraphTypes;
 
-public class PlanetNodeMutation : ObjectGraphType
+public class Mutation : ObjectGraphType
 {
-    public PlanetNodeMutation(BlockChain<PolymorphicAction<BaseAction>> blockChain)
+    public Mutation(BlockChain<PolymorphicAction<BaseAction>> blockChain)
     {
         Field<TransactionMutation<PolymorphicAction<BaseAction>>>(
             "transaction",

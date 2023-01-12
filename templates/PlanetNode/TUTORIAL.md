@@ -88,10 +88,7 @@ Then, navigate to the GraphQL Playground at `http://localhost:38080/ui/playgroun
 ```gql
 query
 {
-  application
-  {
-    asset(address: "25924579F8f1D6a0edE9aa86F9522e44EbC74C26")
-  }
+  asset(address: "25924579F8f1D6a0edE9aa86F9522e44EbC74C26")
 }
 ```
 
@@ -209,10 +206,7 @@ After a block is mined, you can check the balances.
 ```graphql
 query
 {
-  application
-  {
-    asset(address: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A")
-  }
+  asset(address: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A")
 }
 ```
 <img width="896" alt="image" src="https://user-images.githubusercontent.com/128436/166154562-4e471e6d-c5d5-443a-9893-c05c6ba3aa9c.png">
@@ -329,9 +323,7 @@ Alternatively, you can query the node with GraphQL for the peer string. Start th
 
 ```graphql
 query{
-  application {
-    peerString
-  }
+  peerString
 }
 ```
 
@@ -340,9 +332,7 @@ The node will return the peer string along the result, similar to the following:
 ```json
 {
   "data": {
-    "application": {
-      "peerString": "035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234."
-    }
+    "peerString": "035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234."
   }
 }
 ```
@@ -475,10 +465,7 @@ As with the miner node, we can also query the second node for data on the chain.
 ```gql
 query
 {
-  application
-  {
-    asset(address: "25924579F8f1D6a0edE9aa86F9522e44EbC74C26")
-  }
+  asset(address: "25924579F8f1D6a0edE9aa86F9522e44EbC74C26")
 }
 ```
 
@@ -487,9 +474,7 @@ You can see that it successfully retrieves the balance:
 ```json
 {
   "data": {
-    "application": {
-      "asset": "950 PNG"
-    }
+    "asset": "950 PNG"
   }
 }
 ```
@@ -564,10 +549,7 @@ Now you can query the recipient's balance to see if the asset has been successfu
 ```graphql
 query
 {
-  application
-  {
-    asset(address: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A")
-  }
+  asset(address: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A")
 }
 ```
 
@@ -576,9 +558,7 @@ You will get a response like the following if the transfer was successfully made
 ```json
 {
   "data": {
-    "application": {
-      "asset": "100 PNG"
-    }
+    "asset": "100 PNG"
   }
 }
 ```

@@ -58,18 +58,18 @@ app.AddCommand(() =>
         .AddGraphQL(builder =>
         {
             builder
-                .AddSchema<PlanetNodeSchema>()
+                .AddSchema<Schema>()
                 .AddSchema<PlanetExplorerSchema>()
                 .AddGraphTypes(typeof(ExplorerQuery<PolymorphicAction<BaseAction>>).Assembly)
-                .AddGraphTypes(typeof(PlanetNodeQuery).Assembly)
+                .AddGraphTypes(typeof(Query).Assembly)
                 .AddUserContextBuilder<ExplorerContextBuilder>()
                 .AddSystemTextJson();
         })
         .AddCors()
-        .AddSingleton<PlanetNodeSchema>()
-        .AddSingleton<PlanetNodeQuery>()
-        .AddSingleton<PlanetNodeMutation>()
-        .AddSingleton<GraphQLHttpMiddleware<PlanetNodeSchema>>()
+        .AddSingleton<Schema>()
+        .AddSingleton<Query>()
+        .AddSingleton<Mutation>()
+        .AddSingleton<GraphQLHttpMiddleware<Schema>>()
         .AddSingleton<GraphQLHttpMiddleware<PlanetExplorerSchema>>()
         .AddSingleton<IBlockChainContext<PolymorphicAction<BaseAction>>, ExplorerContext>();
 
@@ -95,7 +95,7 @@ app.AddCommand(() =>
     {
         endpoints.MapGraphQLPlayground();
     });
-    app.UseGraphQL<PlanetNodeSchema>();
+    app.UseGraphQL<Schema>();
     app.UseGraphQL<PlanetExplorerSchema>("/graphql/explorer");
 
     app.Run();
