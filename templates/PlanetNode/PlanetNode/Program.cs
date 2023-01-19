@@ -42,18 +42,10 @@ app.AddCommand(() =>
 
     var builder = WebApplication.CreateBuilder(args);
     builder.Services
-        .AddLibplanet(
-            headlessConfig,
-            new PolymorphicAction<BaseAction>[]
-            {
-                new InitializeStates(
-                    new Dictionary<Address, FungibleAssetValue>
-                    {
-                        [new Address("019101FEec7ed4f918D396827E1277DEda1e20D4")] = Currencies.KeyCurrency * 1000,
-                    }
-                ),
-            },
-            ImmutableHashSet.Create(Currencies.KeyCurrency)
+        .AddLibplanet<PolymorphicAction<BaseAction>>(
+            configuration: headlessConfig,
+            nativeTokens: ImmutableHashSet.Create(Currencies.KeyCurrency),
+            differentApvEncountered: null
         )
         .AddGraphQL(builder =>
         {
@@ -73,15 +65,12 @@ app.AddCommand(() =>
         .AddSingleton<GraphQLHttpMiddleware<PlanetExplorerSchema>>()
         .AddSingleton<IBlockChainContext<PolymorphicAction<BaseAction>>, ExplorerContext>();
 
-    if (
-        headlessConfig.GraphQLHost is { } graphqlHost &&
-        headlessConfig.GraphQLPort is { } graphqlPort
-    )
+    if (headlessConfig.GraphQLUri is { } graphqlUri)
     {
         builder.WebHost
             .ConfigureKestrel(options =>
             {
-                options.Listen(IPAddress.Parse(graphqlHost), graphqlPort);
+                options.Listen(IPAddress.Parse(graphqlUri.DnsSafeHost), graphqlUri.Port);
             });
     }
 

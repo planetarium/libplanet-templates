@@ -1,57 +1,37 @@
-using Libplanet.Action;
-
 namespace Libplanet.Headless;
+
+using Libplanet.Net.Protocols;
+
+// TODO: Implement TypeConverter for Libplanet types
+// https://github.com/planetarium/libplanet/issues/2709
 public class Configuration
 {
-    public string? AppProtocolVersionToken { get; set; }
+    public Uri? GenesisBlockPath { get; init; }
 
-    public string? Host { get; set; }
+    public string? Host { get; init; }
 
-    public ushort? Port { get; set; }
+    public ushort Port { get; init; }
 
-    public string? MinerPrivateKeyString { get; set; }
+    public string? MinerPrivateKeyString { get; init; }
 
-    public string? StorePath { get; set; }
+    public Uri? StoreUri { get; init; }
 
-    public string[]? IceServerStrings { get; set; }
+    public Uri[] IceServerUris { get; init; } = Array.Empty<Uri>();
 
-    public string[]? PeerStrings { get; set; }
+    public string[] PeerStrings { get; init; } = Array.Empty<string>();
 
-    public string[]? TrustedAppProtocolVersionSigners { get; set; }
+    public string? AppProtocolVersion { get; init; }
 
-    public bool GraphQLServer { get; set; }
+    public string[]? TrustedAppProtocolVersionSigners { get; init; } = Array.Empty<string>();
 
-    public string? GraphQLHost { get; set; }
+    public Uri? GraphQLUri { get; init; }
 
-    public int? GraphQLPort { get; set; }
+    public int TxLifetimeMins { get; init; } = 180;
 
-    public string? GraphQLSecretTokenPath { get; set; }
+    public int MinimumBroadcastTarget { get; init; } = 10;
 
-    public bool NoCors { get; set; }
+    // TODO: Give a better name e.g. KademliaBucketSize
+    public int BucketSize { get; init; } = Kademlia.BucketSize;
 
-    public int Workers { get; set; }
-
-    public int Confirmations { get; set; }
-
-    public bool StrictRendering { get; set; }
-
-    public bool Render { get; set; }
-
-    public bool Preload { get; set; }
-
-    public int TxLifeTime { get; set; }
-
-    public int MessageTimeout { get; set; }
-
-    public int TipTimeout { get; set; }
-
-    public int DemandBuffer { get; set; }
-
-    public int MinimumBroadcastTarget { get; set; }
-
-    public int BucketSize { get; set; }
-
-    public string[]? StaticPeerStrings { get; set; }
-
-    public IEnumerable<IAction>? GenesisActions { get; set; }
+    public string[] StaticPeerStrings { get; init; } = Array.Empty<string>();
 }

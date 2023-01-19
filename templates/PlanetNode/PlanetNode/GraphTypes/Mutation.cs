@@ -8,6 +8,8 @@ using Libplanet.Blockchain;
 using Libplanet.Crypto;
 using Libplanet.Explorer.GraphTypes;
 using Libplanet.Explorer.Mutations;
+using Libplanet.Net;
+using Libplanet.Tx;
 using PlanetNode.Action;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -20,13 +22,30 @@ public class Mutation : ObjectGraphType
         "StyleCop.CSharp.ReadabilityRules",
         "SA1118:ParameterMustNotSpanMultipleLines",
         Justification = "GraphQL docs require long lines of text.")]
-    public Mutation(BlockChain<PolymorphicAction<BaseAction>> blockChain)
+    public Mutation(
+        Swarm<PolymorphicAction<BaseAction>> swarm,
+        BlockChain<PolymorphicAction<BaseAction>> blockChain
+    )
     {
-        Field<TransactionMutation<PolymorphicAction<BaseAction>>>(
-            "transaction",
-            description: "Adds a transaction to the pending list so that a next block to be " +
-                "mined may contain the given transaction.",
-            resolve: context => new { }
+        Field<TransactionType<PolymorphicAction<BaseAction>>>(
+            "stage",
+            description: "Stage transaction to current chain",
+            arguments: new QueryArguments(
+                new QueryArgument<NonNullGraphType<ByteStringType>>
+                {
+                    Name = "payloadHex",
+                    Description = "The hexadecimal string of the serialized transaction to stage.",
+                }
+            ),
+            resolve: context =>
+            {
+                string payloadHex = context.GetArgument<string>("payloadHex");
+                byte[] payload = ByteUtil.ParseHex(payloadHex);
+                var tx = Transaction<PolymorphicAction<BaseAction>>.Deserialize(payload);
+                blockChain.StageTransaction(tx);
+                swarm.BroadcastTxs(new[] { tx });
+                return tx;
+            }
         );
 
         // TODO: This mutation should be upstreamed to Libplanet.Explorer so that any native tokens
@@ -70,12 +89,14 @@ public class Mutation : ObjectGraphType
                     )
                 );
 
-                return blockChain.MakeTransaction(
+                var tx = blockChain.MakeTransaction(
                     privateKey,
                     action,
                     ImmutableHashSet<Address>.Empty
                         .Add(privateKey.ToAddress())
                         .Add(recipient));
+                swarm.BroadcastTxs(new[] { tx });
+                return tx;
             }
         );
     }

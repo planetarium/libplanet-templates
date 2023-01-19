@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
-using System.Security.Cryptography;
+using Bencodex;
+using Bencodex.Types;
 using Libplanet.Action;
 using Libplanet.Assets;
 using Libplanet.Blockchain;
@@ -9,6 +10,7 @@ using Libplanet.Crypto;
 using Libplanet.Net;
 using Libplanet.Store;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace Libplanet.Headless.Hosting;
 
@@ -17,61 +19,153 @@ public static class LibplanetServicesExtensions
     public static IServiceCollection AddLibplanet<T>(
         this IServiceCollection services,
         Configuration configuration,
-        IEnumerable<T> genesisActions,
-        IImmutableSet<Currency> nativeTokens
+        IImmutableSet<Currency> nativeTokens,
+        DifferentAppProtocolVersionEncountered? differentApvEncountered = null
     )
         where T : IAction, new()
     {
-        services.AddSingleton<IBlockPolicy<T>>(
-            _ => new BlockPolicy<T>(nativeTokens: nativeTokens)
+        var blockPolicy = new BlockPolicy<T>(nativeTokens: nativeTokens);
+        return services.AddLibplanet(
+            configuration,
+            blockPolicy,
+            differentApvEncountered
         );
-        services.AddSingleton<IStagePolicy<T>>(
-            _ => new VolatileStagePolicy<T>()
-        );
-        services.AddSingleton<IStore>(_ => new RocksDBStore.RocksDBStore(configuration.StorePath));
-        services.AddSingleton<IStateStore>(_ => new TrieStateStore(
-            new RocksDBStore.RocksDBKeyValueStore(
-                Path.Combine(configuration.StorePath!, "states")
+    }
+
+    // TODO: Make AddLibplanet() similar to AddGraphQL taking a Func<builder>
+    public static IServiceCollection AddLibplanet<T>(
+        this IServiceCollection services,
+        Configuration configuration,
+        IBlockPolicy<T> blockPolicy,
+        DifferentAppProtocolVersionEncountered? differentApvEncountered = null
+    )
+        where T : IAction, new()
+    {
+        Block<T> genesisBlock;
+        if (configuration.GenesisBlockPath is {} genesisUri)
+        {
+            var codec = new Codec();
+            IValue serializedGenesis;
+            switch (genesisUri.Scheme)
+            {
+                case "file":
+                    Log.Debug("Loading genesis block from {GenesisUri}...", genesisUri);
+                    using (var fileStream = File.OpenRead(genesisUri.LocalPath))
+                    {
+                        serializedGenesis = codec.Decode(fileStream);
+                    }
+                    break;
+
+                case "http":
+                case "https":
+                    Log.Debug("Downloading genesis block from {GenesisUri}...", genesisUri);
+                    using (var handler = new HttpClientHandler { AllowAutoRedirect = true })
+                    using (var client = new HttpClient(handler))
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, genesisUri))
+                    using (var response = client.Send(request))
+                    {
+                        response.EnsureSuccessStatusCode();
+                        using Stream stream = response.Content.ReadAsStream();
+                        serializedGenesis = codec.Decode(stream);
+                    }
+                    break;
+
+                default:
+                    throw new NotSupportedException(
+                        $"Unsupported scheme ({nameof(configuration.GenesisBlockPath)}): " +
+                        genesisUri.Scheme
+                    );
+            }
+
+            genesisBlock = BlockMarshaler.UnmarshalBlock<T>(
+                (Bencodex.Types.Dictionary)serializedGenesis);
+        }
+        else
+        {
+            // FIXME: We should make a CLI command to generate a new genesis block instead:
+            Log.Warning(
+                "No genesis block was given.  A new genesis block will be created instead."
+            );
+            PrivateKey? minerKey = configuration.MinerPrivateKeyString is {} keyStr
+                ? PrivateKey.FromString(keyStr)
+                : null;
+            genesisBlock = BlockChain<T>.MakeGenesisBlock(privateKey: minerKey);
+        }
+
+        services.AddSingleton<IBlockPolicy<T>>(blockPolicy);
+        // TODO: Make it configurable:
+        services.AddSingleton<IStagePolicy<T>>(_ =>
+            new VolatileStagePolicy<T>(
+                TimeSpan.FromMinutes(configuration.TxLifetimeMins)
             )
-        ));
-        services.AddSingleton(provider =>
+        );
+
+        if (configuration.StoreUri is not {} storeUri)
         {
-            IStore store = provider.GetRequiredService<IStore>();
-            IBlockPolicy<T> blockPolicy =
-                provider.GetRequiredService<IBlockPolicy<T>>();
-            if (store.GetCanonicalChainId() is Guid cid &&
-                store.CountIndex(cid) > 0)
-            {
-                BlockHash genesisHash = store.IterateIndexes(cid, 0, 1).Single();
-                return store.GetBlock<T>(genesisHash);
-            }
-            else
-            {
-                return BlockChain<T>.MakeGenesisBlock(genesisActions);
-            }
+            throw new ArgumentException(
+                $"{configuration.StoreUri} is required.",
+                nameof(configuration)
+            );
+        }
+
+        Log.Information("Loading store from {StoreUri}...", storeUri);
+        var (store, stateStore) = LoadStore(storeUri);
+        services.AddSingleton<IStore>(store);
+        services.AddSingleton<IStateStore>(stateStore);
+        services.AddSingleton<BlockChain<T>>(provider =>
+        {
+            return new BlockChain<T>(
+                provider.GetRequiredService<IBlockPolicy<T>>(),
+                provider.GetRequiredService<IStagePolicy<T>>(),
+                provider.GetRequiredService<IStore>(),
+                provider.GetRequiredService<IStateStore>(),
+                genesisBlock
+            );
         });
-        services.AddSingleton(provider =>
+        services.AddSingleton<Swarm<T>>(provider =>
         {
+            var peers = configuration.PeerStrings.Select(BoundPeer.ParsePeer).ToImmutableList();
+            var options = new SwarmOptions
+            {
+                StaticPeers = configuration.StaticPeerStrings
+                    .Select(BoundPeer.ParsePeer)
+                    .ToImmutableHashSet(),
+                BucketSize = configuration.BucketSize,
+                MinimumBroadcastTarget = configuration.MinimumBroadcastTarget,
+                BootstrapOptions = new BootstrapOptions
+                {
+                    SeedPeers = peers,
+                },
+                TimeoutOptions = new TimeoutOptions
+                {
+                    MaxTimeout = TimeSpan.FromSeconds(50),
+                    GetBlockHashesTimeout = TimeSpan.FromSeconds(50),
+                    GetBlocksBaseTimeout = TimeSpan.FromSeconds(5),
+                }
+            };
+            // TODO: Swarm private key should be configurable:
+            var random = new Random();
             return new Swarm<T>(
                 provider.GetRequiredService<BlockChain<T>>(),
                 new PrivateKey(),
-                default,
+                configuration.AppProtocolVersion is {} apv
+                    ? AppProtocolVersion.FromToken(apv)
+                    : default,
                 host: configuration.Host,
-                listenPort: configuration.Port
+                listenPort: configuration.Port,
+                iceServers: configuration.IceServerUris
+                    .Select(uri => new IceServer(uri))
+                    .OrderBy(_ => random.Next()),
+                trustedAppProtocolVersionSigners:
+                    configuration.TrustedAppProtocolVersionSigners
+                        ?.Select(hex => new PublicKey(ByteUtil.ParseHex(hex))),
+                differentAppProtocolVersionEncountered: differentApvEncountered,
+                options: options
             );
         });
-        services.AddSingleton<BlockChain<T>>();
         services.AddSingleton(_ => configuration);
 
-        BoundPeer[] peers = configuration.PeerStrings is { } ? configuration.PeerStrings.
-            Select(BoundPeer.ParsePeer).ToArray() : Array.Empty<BoundPeer>();
-
-        services.AddHostedService(provider =>
-            new SwarmService<T>(
-                provider.GetRequiredService<Swarm<T>>(),
-                peers
-            )
-        );
+        services.AddHostedService<SwarmService<T>>();
 
         if (configuration.MinerPrivateKeyString is { } minerPrivateKey)
         {
@@ -84,5 +178,23 @@ public static class LibplanetServicesExtensions
         }
 
         return services;
+    }
+
+    private static (IStore, IStateStore) LoadStore(Uri storeUri)
+    {
+        (IStore, IStateStore)? pair = StoreLoaderAttribute.LoadStore(storeUri);
+        if (pair is {} found)
+        {
+            return found;
+        }
+
+        string supported = string.Join(
+            "\n",
+            StoreLoaderAttribute.ListStoreLoaders().Select(pair =>
+                $"  {pair.UriScheme}: {pair.DeclaringType.FullName}"));
+        throw new TypeLoadException(
+            $"Store type {storeUri.Scheme} is not supported; supported types " +
+            $"are:\n\n${supported}"
+        );
     }
 }
