@@ -17,6 +17,18 @@
     "75D87A03-FB5C-410B-8921-A560E63A3B93"
   ],
   "symbols": {
+    "EnvPrefix": {
+      "description": "The prefix of environment variables to be used for configuration.",
+      "type": "parameter",
+      "dataType": "string",
+      "isRequired": true
+    },
+    "EnvPrefixUnderscoreAppended": {
+      "type": "derived",
+      "valueSource": "EnvPrefix",
+      "valueTransform": "TurnIntoEnvPrefix",
+      "replaces": "PN_"
+    },
     "TokenTicker": {
       "description": "The ticker symbol of your token, e.g., USD, BTC, ETH.  Usually 3 to 4 letters in all caps.",
       "type": "parameter",
@@ -30,6 +42,20 @@
       "dataType": "int",
       "replaces": "18",
       "defaultValue": "18"
+    }
+  },
+  "forms": {
+    "AppendUnderscoreIfNeeded": {
+      "identifier": "replace",
+      "pattern": "^(.*?)_?$",
+      "replacement": "$1_"
+    },
+    "Uppercase": {
+      "identifier": "upperCaseInvariant"
+    },
+    "TurnIntoEnvPrefix": {
+      "identifier": "chain",
+      "steps": ["AppendUnderscoreIfNeeded", "Uppercase"]
     }
   }
 }
