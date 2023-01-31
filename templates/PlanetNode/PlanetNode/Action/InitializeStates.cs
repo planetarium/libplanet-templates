@@ -23,8 +23,8 @@ public class InitializeStates : BaseAction
 
     public override IValue PlainValue => new Dictionary(
         _assets.Select(kv => new KeyValuePair<IKey, IValue>(
-            (Binary)kv.Key.ToIValue(),
-            kv.Value.ToIValue()
+            (Binary)kv.Key.ToBencodex(),
+            kv.Value.ToBencodex()
         )
     ));
 

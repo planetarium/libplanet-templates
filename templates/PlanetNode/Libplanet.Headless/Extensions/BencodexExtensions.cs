@@ -3,9 +3,9 @@ using Libplanet.Assets;
 
 namespace Libplanet.Headless.Extensions;
 
-public static class IValueExtensions
+public static class BencodexExtensions
 {
-    public static IValue ToIValue(this FungibleAssetValue fav) =>
+    public static IValue ToBencodex(this FungibleAssetValue fav) =>
         new List(fav.Currency.Serialize(), (Integer)fav.RawValue);
 
     public static FungibleAssetValue ToFungibleAssetValue(this IValue value) =>
@@ -14,6 +14,6 @@ public static class IValueExtensions
             ((Integer)((List)value)[1]).Value
         );
 
-    public static IValue ToIValue(this Address address) => (Binary)address.ToByteArray();
+    public static IValue ToBencodex(this Address address) => new Binary(address.ByteArray);
     public static Address ToAddress(this IValue value) => new((Binary)value);
 }
