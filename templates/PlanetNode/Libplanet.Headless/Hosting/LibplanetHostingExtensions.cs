@@ -1,3 +1,5 @@
+namespace Libplanet.Headless.Hosting;
+
 using System.Collections.Immutable;
 using Bencodex;
 using Bencodex.Types;
@@ -11,8 +13,6 @@ using Libplanet.Net;
 using Libplanet.Store;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-
-namespace Libplanet.Headless.Hosting;
 
 public static class LibplanetServicesExtensions
 {
@@ -42,55 +42,49 @@ public static class LibplanetServicesExtensions
         where T : IAction, new()
     {
         Block<T> genesisBlock;
-        if (configuration.GenesisBlockPath is {} genesisUri)
+        if (configuration.GenesisBlockPath is not { } genesisUri)
         {
-            var codec = new Codec();
-            IValue serializedGenesis;
-            switch (genesisUri.Scheme)
-            {
-                case "file":
-                    Log.Debug("Loading genesis block from {GenesisUri}...", genesisUri);
-                    using (var fileStream = File.OpenRead(genesisUri.LocalPath))
-                    {
-                        serializedGenesis = codec.Decode(fileStream);
-                    }
-                    break;
-
-                case "http":
-                case "https":
-                    Log.Debug("Downloading genesis block from {GenesisUri}...", genesisUri);
-                    using (var handler = new HttpClientHandler { AllowAutoRedirect = true })
-                    using (var client = new HttpClient(handler))
-                    using (var request = new HttpRequestMessage(HttpMethod.Get, genesisUri))
-                    using (var response = client.Send(request))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        using Stream stream = response.Content.ReadAsStream();
-                        serializedGenesis = codec.Decode(stream);
-                    }
-                    break;
-
-                default:
-                    throw new NotSupportedException(
-                        $"Unsupported scheme ({nameof(configuration.GenesisBlockPath)}): " +
-                        genesisUri.Scheme
-                    );
-            }
-
-            genesisBlock = BlockMarshaler.UnmarshalBlock<T>(
-                (Bencodex.Types.Dictionary)serializedGenesis);
-        }
-        else
-        {
-            // FIXME: We should make a CLI command to generate a new genesis block instead:
-            Log.Warning(
-                "No genesis block was given.  A new genesis block will be created instead."
+            throw new ArgumentException(
+                $"The {nameof(configuration.GenesisBlockPath)} not specified.",
+                nameof(configuration)
             );
-            PrivateKey? minerKey = configuration.MinerPrivateKeyString is {} keyStr
-                ? PrivateKey.FromString(keyStr)
-                : null;
-            genesisBlock = BlockChain<T>.MakeGenesisBlock(privateKey: minerKey);
         }
+
+        var codec = new Codec();
+        IValue serializedGenesis;
+        switch (genesisUri.Scheme)
+        {
+            case "file":
+                Log.Debug("Loading genesis block from {GenesisUri}...", genesisUri);
+                using (var fileStream = File.OpenRead(genesisUri.LocalPath))
+                {
+                    serializedGenesis = codec.Decode(fileStream);
+                }
+                break;
+
+            case "http":
+            case "https":
+                Log.Debug("Downloading genesis block from {GenesisUri}...", genesisUri);
+                using (var handler = new HttpClientHandler { AllowAutoRedirect = true })
+                using (var client = new HttpClient(handler))
+                using (var request = new HttpRequestMessage(HttpMethod.Get, genesisUri))
+                using (var response = client.Send(request))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using Stream stream = response.Content.ReadAsStream();
+                    serializedGenesis = codec.Decode(stream);
+                }
+                break;
+
+            default:
+                throw new NotSupportedException(
+                    $"Unsupported scheme ({nameof(configuration.GenesisBlockPath)}): " +
+                    genesisUri.Scheme
+                );
+        }
+
+        genesisBlock = BlockMarshaler.UnmarshalBlock<T>(
+            (Bencodex.Types.Dictionary)serializedGenesis);
 
         services.AddSingleton<IBlockPolicy<T>>(blockPolicy);
         // TODO: Make it configurable:
@@ -103,7 +97,7 @@ public static class LibplanetServicesExtensions
         if (configuration.StoreUri is not {} storeUri)
         {
             throw new ArgumentException(
-                $"{configuration.StoreUri} is required.",
+                $"{nameof(configuration.StoreUri)} is required.",
                 nameof(configuration)
             );
         }
@@ -182,6 +176,11 @@ public static class LibplanetServicesExtensions
 
     private static (IStore, IStateStore) LoadStore(Uri storeUri)
     {
+#pragma warning disable CS0219
+        // Workaround to reference RocksDBStore.dll:
+        RocksDBStore.RocksDBStore? _ = null;
+#pragma warning restore CS0219
+
         (IStore, IStateStore)? pair = StoreLoaderAttribute.LoadStore(storeUri);
         if (pair is {} found)
         {
@@ -194,7 +193,7 @@ public static class LibplanetServicesExtensions
                 $"  {pair.UriScheme}: {pair.DeclaringType.FullName}"));
         throw new TypeLoadException(
             $"Store type {storeUri.Scheme} is not supported; supported types " +
-            $"are:\n\n${supported}"
+            $"are:\n\n{supported}"
         );
     }
 }

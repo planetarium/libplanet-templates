@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "libplanet.tools": {
+      "version": "0.47.0-dev.20230131060611",
+      "commands": [
+        "planet"
+      ]
+    },
+    "powershell": {
+      "version": "7.2.8",
+      "commands": [
+        "pwsh"
+      ]
+    }
+  }
+}

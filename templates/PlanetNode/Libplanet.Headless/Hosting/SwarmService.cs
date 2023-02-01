@@ -10,10 +10,10 @@ public class SwarmService<T> : BackgroundService, IDisposable
     private readonly Swarm<T> _swarm;
     private readonly BoundPeer[] _peers;
 
-    public SwarmService(Swarm<T> swarm, BoundPeer[] peers)
+    public SwarmService(Swarm<T> swarm, Configuration configuration)
     {
         _swarm = swarm;
-        _peers = peers;
+        _peers = configuration.PeerStrings.Select(BoundPeer.ParsePeer).ToArray();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

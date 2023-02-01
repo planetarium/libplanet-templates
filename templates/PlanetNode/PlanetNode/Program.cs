@@ -44,7 +44,7 @@ app.AddCommand(() =>
     builder.Services
         .AddLibplanet<PolymorphicAction<BaseAction>>(
             configuration: headlessConfig,
-            nativeTokens: ImmutableHashSet.Create(Currencies.KeyCurrency),
+            blockPolicy: BlockPolicySource.GetPolicy(),
             differentApvEncountered: null
         )
         .AddGraphQL(builder =>

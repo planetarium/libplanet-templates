@@ -31,6 +31,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <CodeAnalysisRuleSet>..\PlanetNode.ruleset</CodeAnalysisRuleSet>
+    <LangVersion>10</LangVersion>
   </PropertyGroup>
 
 </Project>
