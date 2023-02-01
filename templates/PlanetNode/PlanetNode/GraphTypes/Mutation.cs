@@ -1,3 +1,7 @@
+namespace PlanetNode.GraphTypes;
+
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using GraphQL;
 using GraphQL.Types;
 using Libplanet;
@@ -7,14 +11,9 @@ using Libplanet.Assets;
 using Libplanet.Blockchain;
 using Libplanet.Crypto;
 using Libplanet.Explorer.GraphTypes;
-using Libplanet.Explorer.Mutations;
 using Libplanet.Net;
 using Libplanet.Tx;
 using PlanetNode.Action;
-using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
-
-namespace PlanetNode.GraphTypes;
 
 public class Mutation : ObjectGraphType
 {

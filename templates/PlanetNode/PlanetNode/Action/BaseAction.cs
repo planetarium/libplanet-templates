@@ -1,7 +1,7 @@
+namespace PlanetNode.Action;
+
 using Bencodex.Types;
 using Libplanet.Action;
-
-namespace PlanetNode.Action;
 
 public abstract class BaseAction : IAction
 {

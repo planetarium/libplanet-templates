@@ -1,11 +1,11 @@
+namespace PlanetNode;
+
 using Libplanet.Action;
 using Libplanet.Blockchain;
 using Libplanet.Explorer.Interfaces;
 using Libplanet.Net;
 using Libplanet.Store;
 using PlanetNode.Action;
-
-namespace PlanetNode;
 
 public class ExplorerContext : IBlockChainContext<PolymorphicAction<BaseAction>>
 {

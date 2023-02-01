@@ -1,10 +1,10 @@
+namespace PlanetNode.Action;
+
 using Bencodex.Types;
 using Libplanet;
 using Libplanet.Action;
 using Libplanet.Assets;
 using Libplanet.Headless.Extensions;
-
-namespace PlanetNode.Action;
 
 [ActionType(nameof(InitializeStates))]
 public class InitializeStates : BaseAction

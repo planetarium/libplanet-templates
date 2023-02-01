@@ -1,3 +1,6 @@
+namespace PlanetNode.GraphTypes;
+
+using System.Diagnostics.CodeAnalysis;
 using GraphQL;
 using GraphQL.Types;
 using Libplanet;
@@ -6,9 +9,6 @@ using Libplanet.Assets;
 using Libplanet.Blockchain;
 using Libplanet.Net;
 using PlanetNode.Action;
-using System.Diagnostics.CodeAnalysis;
-
-namespace PlanetNode.GraphTypes;
 
 public class Query : ObjectGraphType
 {

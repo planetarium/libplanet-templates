@@ -1,10 +1,10 @@
+namespace PlanetNode.Action;
+
 using Bencodex.Types;
 using Libplanet;
 using Libplanet.Action;
 using Libplanet.Assets;
 using Libplanet.Headless.Extensions;
-
-namespace PlanetNode.Action;
 
 /// <summary>
 /// Basically, it's just a double of <see cref="Libplanet.Action.Sys.Tranfer"/>,

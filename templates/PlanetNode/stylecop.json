@@ -5,8 +5,8 @@
       "newlineAtEndOfFile": "require"
     },
     "orderingRules": {
-      "systemUsingDirectivesFirst": false,
-      "usingDirectivesPlacement": "outsideNamespace"
+      "systemUsingDirectivesFirst": true,
+      "usingDirectivesPlacement": "insideNamespace"
     }
   }
 }

@@ -1,6 +1,6 @@
-using Libplanet.Assets;
-
 namespace PlanetNode;
+
+using Libplanet.Assets;
 
 public static class Currencies
 {

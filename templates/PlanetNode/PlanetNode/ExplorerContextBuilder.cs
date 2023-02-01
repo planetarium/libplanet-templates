@@ -1,10 +1,10 @@
+namespace PlanetNode;
+
 using GraphQL.Server.Transports.AspNetCore;
 using Libplanet.Action;
 using Libplanet.Explorer.Interfaces;
 using Libplanet.Store;
 using PlanetNode.Action;
-
-namespace PlanetNode;
 
 internal class ExplorerContextBuilder : IUserContextBuilder
 {
