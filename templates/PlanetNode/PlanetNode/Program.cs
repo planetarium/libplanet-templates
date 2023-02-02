@@ -77,12 +77,16 @@ app.AddCommand(() =>
         builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
     });
     app.UseRouting();
-    app.UseEndpoints(endpoints =>
+
+    if (headlessConfig.GraphQLUri is { LocalPath: { } localPath })
     {
-        endpoints.MapGraphQLPlayground();
-    });
-    app.UseGraphQL<Schema>();
-    app.UseGraphQL<PlanetExplorerSchema>("/graphql/explorer");
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapGraphQLPlayground();
+        });
+        app.UseGraphQL<Schema>(localPath);
+        app.UseGraphQL<PlanetExplorerSchema>($"{localPath.TrimEnd('/')}/explorer");
+    }
 
     app.Run();
 });

@@ -44,9 +44,8 @@ public static class LibplanetServicesExtensions
         Block<T> genesisBlock;
         if (configuration.GenesisBlockPath is not { } genesisUri)
         {
-            throw new ArgumentException(
-                $"The {nameof(configuration.GenesisBlockPath)} not specified.",
-                nameof(configuration)
+            throw new MissingConfigurationFieldException(
+                nameof(configuration.GenesisBlockPath)
             );
         }
 
@@ -96,9 +95,8 @@ public static class LibplanetServicesExtensions
 
         if (configuration.StoreUri is not {} storeUri)
         {
-            throw new ArgumentException(
-                $"{nameof(configuration.StoreUri)} is required.",
-                nameof(configuration)
+            throw new MissingConfigurationFieldException(
+                nameof(configuration.StoreUri)
             );
         }
 
@@ -144,7 +142,9 @@ public static class LibplanetServicesExtensions
                 new PrivateKey(),
                 configuration.AppProtocolVersion is {} apv
                     ? AppProtocolVersion.FromToken(apv)
-                    : default,
+                    : throw new MissingConfigurationFieldException(
+                        nameof(configuration.AppProtocolVersion)
+                    ),
                 host: configuration.Host,
                 listenPort: configuration.Port,
                 iceServers: configuration.IceServerUris

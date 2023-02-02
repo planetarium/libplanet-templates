@@ -13,6 +13,8 @@ if ($slnFiles.Count -ne 1) {
 }
 $sln = $slnFiles[0]
 
+dotnet tool restore
+
 # FIXME: Projects can be more than one
 $proj = (
   dotnet sln $sln list `
@@ -35,7 +37,16 @@ dotnet build --configuration $configuration $sln
 $dataDir = Join-Path $workDir "data"
 New-Item -ItemType Directory -Force $dataDir
 
-$keyId = ((dotnet planet key create --passphrase=) -split '\s+')[0]
+$randomBytes = New-Object byte[](32)
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($randomBytes)
+$passphrase = ($randomBytes | ForEach-Object ToString X2) -join ''
+
+$keyId = ((dotnet planet key create --passphrase=$passphrase) -split '\s+')[0]
+$publicKey = dotnet planet key export `
+  --public-key `
+  --passphrase=$passphrase `
+  $keyId
 try {
   $genesisPath = Join-Path $dataDir "genesis.bin"
   $binPath = Join-Path `
@@ -46,7 +57,7 @@ try {
     $targetFramework
   $dllPath = Join-Path $binPath "$projectName.dll"
   dotnet planet block generate-genesis `
-    --passphrase="" `
+    --passphrase=$passphrase `
     --load-assembly=$dllPath `
     --policy-factory="$projectName.BlockPolicySource.GetPolicy" `
   $keyId `
@@ -54,8 +65,10 @@ try {
 
   Write-Information "Genesis block is generated at $genesisPath."
 
+  $apv = dotnet planet apv sign --passphrase=$passphrase $keyId 0
+
   $storeDir = Join-Path $dataDir "store"
-New-Item -ItemType Directory -Force $storeDir
+  New-Item -ItemType Directory -Force $storeDir
 
   $genesisUri = "file://$(Resolve-Path $genesisPath)"
   $storeUri = "rocksdb+file://$(Resolve-Path $storeDir)?secure=false"
@@ -77,11 +90,23 @@ New-Item -ItemType Directory -Force $storeDir
           -MemberType NoteProperty `
           -Force `
           -PassThru `
+      | Add-Member `
+          -Name "AppProtocolVersion" `
+          -Value $apv `
+          -MemberType NoteProperty `
+          -Force `
+          -PassThru `
+      | Add-Member `
+          -Name "TrustedAppProtocolVersionSigners" `
+          -Value @($publicKey) `
+          -MemberType NoteProperty `
+          -Force `
+          -PassThru `
       | ConvertTo-Json -Depth 100 `
       | Set-Content -Encoding utf8 $file
   }
 
   Remove-Item -Recurse $PSScriptRoot -ErrorAction SilentlyContinue
 } finally {
-  dotnet planet key remove --passphrase="" $keyId
+  dotnet planet key remove --passphrase=$passphrase $keyId
 }
