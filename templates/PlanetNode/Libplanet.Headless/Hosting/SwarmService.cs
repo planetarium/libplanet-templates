@@ -8,17 +8,15 @@ public class SwarmService<T> : BackgroundService, IDisposable
     where T : IAction, new()
 {
     private readonly Swarm<T> _swarm;
-    private readonly BoundPeer[] _peers;
 
-    public SwarmService(Swarm<T> swarm, Configuration configuration)
+    public SwarmService(Swarm<T> swarm)
     {
         _swarm = swarm;
-        _peers = configuration.PeerStrings.Select(BoundPeer.ParsePeer).ToArray();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await _swarm.AddPeersAsync(_peers, default, cancellationToken: stoppingToken).ConfigureAwait(false);
+        await _swarm.BootstrapAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
         await _swarm.PreloadAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
         await _swarm.StartAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
     }

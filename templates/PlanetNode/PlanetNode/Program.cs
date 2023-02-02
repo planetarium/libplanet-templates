@@ -39,11 +39,12 @@ app.AddCommand(() =>
 
     var builder = WebApplication.CreateBuilder(args);
     builder.Services
-        .AddLibplanet<PolymorphicAction<BaseAction>>(
-            configuration: headlessConfig,
-            blockPolicy: BlockPolicySource.GetPolicy(),
-            differentApvEncountered: null
-        )
+        .AddLibplanet<PolymorphicAction<BaseAction>>(builder =>
+        {
+            builder
+                .UseConfiguration(headlessConfig)
+                .UseBlockPolicy(BlockPolicySource.GetPolicy());
+        })
         .AddGraphQL(builder =>
         {
             builder

@@ -12,8 +12,6 @@ public class Configuration
 
     public ushort Port { get; init; }
 
-    public string? MinerPrivateKeyString { get; init; }
-
     public Uri? StoreUri { get; init; }
 
     public Uri[] IceServerUris { get; init; } = Array.Empty<Uri>();
