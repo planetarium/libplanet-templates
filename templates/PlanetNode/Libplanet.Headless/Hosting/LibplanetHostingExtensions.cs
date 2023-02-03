@@ -25,6 +25,7 @@ public static class LibplanetServicesExtensions
         services.AddSingleton<IStateStore>(build.StateStore);
         services.AddSingleton<BlockChain<T>>(build.BlockChain);
         services.AddSingleton<Swarm<T>>(build.Swarm);
+        services.AddSingleton(typeof(SwarmService<T>.Mode), build.SwarmMode);
         services.AddHostedService<SwarmService<T>>();
 
         if (build.MinerPrivateKey is { } minerPrivateKey)

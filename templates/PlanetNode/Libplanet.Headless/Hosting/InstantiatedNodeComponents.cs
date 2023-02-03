@@ -14,4 +14,5 @@ public readonly record struct InstantiatedNodeComponents<T>
     public BlockChain<T> BlockChain { get; init; }
     public Swarm<T> Swarm { get; init; }
     public PrivateKey? MinerPrivateKey { get; init; }
+    public SwarmService<T>.Mode SwarmMode { get; init; }
 }

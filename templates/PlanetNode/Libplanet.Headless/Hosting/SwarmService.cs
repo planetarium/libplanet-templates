@@ -7,16 +7,29 @@ namespace Libplanet.Headless.Hosting;
 public class SwarmService<T> : BackgroundService, IDisposable
     where T : IAction, new()
 {
-    private readonly Swarm<T> _swarm;
+    public enum Mode
+    {
+        StandaloneNode,
+        Node,
+    }
 
-    public SwarmService(Swarm<T> swarm)
+    private readonly Swarm<T> _swarm;
+    private readonly SwarmService<T>.Mode _mode;
+
+    public SwarmService(Swarm<T> swarm, Mode mode)
     {
         _swarm = swarm;
+        _mode = mode;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await _swarm.BootstrapAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
+        if (_mode != Mode.StandaloneNode)
+        {
+            await _swarm.BootstrapAsync(cancellationToken: stoppingToken)
+                .ConfigureAwait(false);
+        }
+
         await _swarm.PreloadAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
         await _swarm.StartAsync(cancellationToken: stoppingToken).ConfigureAwait(false);
     }

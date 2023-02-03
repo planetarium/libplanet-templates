@@ -185,26 +185,39 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
             stateStore,
             GetGenesisBlock()
         );
-        // TODO: Swarm private key should be configurable:
-        var random = new Random();
-        var swarm = new Swarm<T>(
-            blockChain,
-            new PrivateKey(),
-            _configuration.AppProtocolVersion is {} apv
+        var apvOptions = new AppProtocolVersionOptions
+        {
+            AppProtocolVersion = _configuration.AppProtocolVersion is {} apv
                 ? AppProtocolVersion.FromToken(apv)
                 : throw new MissingConfigurationFieldException(
                     nameof(_configuration.AppProtocolVersion)
                 ),
+            TrustedAppProtocolVersionSigners =
+                _configuration.TrustedAppProtocolVersionSigners
+                    ?.Select(hex => new PublicKey(ByteUtil.ParseHex(hex)))
+                    ?.ToImmutableHashSet(),
+        };
+        if (_differentApvEncountered is not null)
+        {
+            apvOptions.DifferentAppProtocolVersionEncountered = _differentApvEncountered;
+        }
+
+        var random = new Random();
+        var hostOptions = new HostOptions(
             host: _configuration.Host,
-            listenPort: _configuration.Port,
             iceServers: _configuration.IceServerUris
                 .Select(uri => new IceServer(uri))
                 .OrderBy(_ => random.Next()),
-            trustedAppProtocolVersionSigners:
-                _configuration.TrustedAppProtocolVersionSigners
-                    ?.Select(hex => new PublicKey(ByteUtil.ParseHex(hex))),
-            differentAppProtocolVersionEncountered: _differentApvEncountered,
-            options: GetSwarmOptions()
+            port: _configuration.Port
+        );
+
+        // TODO: Swarm private key should be configurable:
+        var swarm = new Swarm<T>(
+            blockChain,
+            new PrivateKey(),
+            apvOptions,
+            hostOptions,
+            GetSwarmOptions()
         );
 
         return new InstantiatedNodeComponents<T>()
@@ -214,6 +227,9 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
             BlockChain = blockChain,
             Swarm = swarm,
             MinerPrivateKey = _minerPrivateKey,
+            SwarmMode = _configuration.PeerStrings.Any() || _configuration.StaticPeerStrings.Any()
+                ? SwarmService<T>.Mode.Node
+                : SwarmService<T>.Mode.StandaloneNode,
         };
     }
 }
