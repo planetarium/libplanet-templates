@@ -9,8 +9,6 @@ using PlanetNode.Action;
 
 public class ExplorerContext : IBlockChainContext<PolymorphicAction<BaseAction>>
 {
-    private readonly Swarm<PolymorphicAction<BaseAction>> _swarm;
-
     public ExplorerContext(
         BlockChain<PolymorphicAction<BaseAction>> blockChain,
         IStore store,
@@ -19,12 +17,14 @@ public class ExplorerContext : IBlockChainContext<PolymorphicAction<BaseAction>>
     {
         BlockChain = blockChain;
         Store = store;
-        _swarm = swarm;
+        Swarm = swarm;
     }
 
-    public bool Preloaded => _swarm.Running;
+    public bool Preloaded => Swarm.Running;
 
     public BlockChain<PolymorphicAction<BaseAction>> BlockChain { get; private set; }
 
     public IStore Store { get; private set; }
+
+    public Swarm<PolymorphicAction<BaseAction>> Swarm { get; private set; }
 }

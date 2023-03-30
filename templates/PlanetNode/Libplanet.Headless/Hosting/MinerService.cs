@@ -1,5 +1,8 @@
+using System.Collections.Immutable;
 using Libplanet.Action;
 using Libplanet.Blockchain;
+using Libplanet.Blocks;
+using Libplanet.Consensus;
 using Libplanet.Crypto;
 using Microsoft.Extensions.Hosting;
 
@@ -22,7 +25,26 @@ public class MinerService<T> : BackgroundService, IDisposable
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await _blockChain.MineBlock(_privateKey).ConfigureAwait(false);
+            var block = _blockChain.ProposeBlock(
+                _privateKey,
+                lastCommit: _blockChain.GetBlockCommit(_blockChain.Tip.Hash));
+            _blockChain.Append(
+                block,
+                new BlockCommit(
+                    _blockChain.Count,
+                    0,
+                    block.Hash,
+                    ImmutableArray<Vote>
+                        .Empty
+                        .Add(
+                            new VoteMetadata(
+                                _blockChain.Count,
+                                0,
+                                block.Hash,
+                                DateTimeOffset.UtcNow,
+                                _privateKey.PublicKey,
+                                VoteFlag.PreCommit)
+                                .Sign(_privateKey))));
             stoppingToken.ThrowIfCancellationRequested();
         }
     }

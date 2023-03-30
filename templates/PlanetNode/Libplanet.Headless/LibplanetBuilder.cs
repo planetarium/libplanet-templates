@@ -1,3 +1,5 @@
+using Libplanet.Net.Transports;
+
 namespace Libplanet.Headless.Hosting;
 
 using System.Collections.Immutable;
@@ -178,13 +180,20 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
         var stagePolicy = new VolatileStagePolicy<T>(
             TimeSpan.FromMinutes(_configuration.TxLifetimeMins)
         );
-        var blockChain = new BlockChain<T>(
-            blockPolicy,
-            stagePolicy,
-            store,
-            stateStore,
-            GetGenesisBlock()
-        );
+        var genesis = GetGenesisBlock();
+        var blockChain = store.GetCanonicalChainId() is not null
+            ? new BlockChain<T>(
+                blockPolicy,
+                stagePolicy,
+                store,
+                stateStore,
+                genesis)
+            : BlockChain<T>.Create(
+                blockPolicy,
+                stagePolicy,
+                store,
+                stateStore,
+                genesis);
         var apvOptions = new AppProtocolVersionOptions
         {
             AppProtocolVersion = _configuration.AppProtocolVersion is {} apv
@@ -211,14 +220,21 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
             port: _configuration.Port
         );
 
+        var swarmOptions = GetSwarmOptions();
+
         // TODO: Swarm private key should be configurable:
-        var swarm = new Swarm<T>(
-            blockChain,
+        var transport = NetMQTransport.Create(
             new PrivateKey(),
             apvOptions,
             hostOptions,
-            GetSwarmOptions()
-        );
+            swarmOptions.MessageTimestampBuffer)
+            .ConfigureAwait(false).GetAwaiter().GetResult();
+
+        var swarm = new Swarm<T>(
+            blockChain,
+            new PrivateKey(),
+            transport,
+            GetSwarmOptions());
 
         return new InstantiatedNodeComponents<T>()
         {
