@@ -75,6 +75,9 @@ if ($LASTEXITCODE -ne 0) {
   exit $LASTEXITCODE
 }
 
+$address = ((dotnet planet key list 2>$null `
+  | Select-String $keyId) -split " ")[1]
+
 try {
   $genesisPath = Join-Path $dataDir "genesis.bin"
   $binPath = Join-Path `
@@ -88,6 +91,7 @@ try {
     --passphrase="$passphrase" `
     --load-assembly=$dllPath `
     --policy-factory="$projectName.BlockPolicySource.GetPolicy" `
+    -v "$publicKey" `
     "$keyId" `
     $genesisPath
   if ($LASTEXITCODE -ne 0) {
@@ -103,47 +107,76 @@ try {
     exit $LASTEXITCODE
   }
 
-  $storeDir = Join-Path $dataDir "store"
-  New-Item -ItemType Directory -Force $storeDir
-
+  $storeDirPrefix = Join-Path $dataDir "store"
   $genesisUri = "file://$(Resolve-Path $genesisPath)"
-  $storeUri = "rocksdb+file://$(Resolve-Path $storeDir)?secure=false"
   $appSettings = Get-ChildItem `
     -Filter "appsettings*.json" `
     (Join-Path $workDir $projectName)
   foreach ($file in $appSettings) {
-    Get-Content $file `
-    | ConvertFrom-Json `
-    | Add-Member `
-        -Name "GenesisBlockPath" `
-        -Value $genesisUri `
-        -MemberType NoteProperty `
-        -Force `
-        -PassThru `
-    | Add-Member `
-        -Name "StoreUri" `
-        -Value $storeUri `
-        -MemberType NoteProperty `
-        -Force `
-        -PassThru `
-    | Add-Member `
-        -Name "AppProtocolVersion" `
-        -Value $apv `
-        -MemberType NoteProperty `
-        -Force `
-        -PassThru `
-    | Add-Member `
-        -Name "TrustedAppProtocolVersionSigners" `
-        -Value @($publicKey) `
-        -MemberType NoteProperty `
-        -Force `
-        -PassThru `
-    | ConvertTo-Json -Depth 100 `
-    | Set-Content -Encoding utf8 $file
+    $configType = if ($file.Name -match '^appsettings\.(\w+)\.json$') {
+      $Matches.1
+    } else {
+      $null
+    }
+    $storeDir = if ($null -eq $configType) {
+      $storeDirPrefix
+    } else {
+      "${storeDirPrefix}-$configType"
+    }
+    New-Item -ItemType Directory -Force $storeDir
+    $storeUri = "rocksdb+file://$(Resolve-Path $storeDir)?secure=false"
+    $configJson = Get-Content $file | ConvertFrom-Json
+    $configJson = $configJson `
+      | Add-Member `
+          -Name "GenesisBlockPath" `
+          -Value $genesisUri `
+          -MemberType NoteProperty `
+          -Force `
+          -PassThru `
+      | Add-Member `
+          -Name "StoreUri" `
+          -Value $storeUri `
+          -MemberType NoteProperty `
+          -Force `
+          -PassThru
+    $configJson.Network = $configJson.Network `
+      | Add-Member `
+          -Name "AppProtocolVersion" `
+          -Value $apv `
+          -MemberType NoteProperty `
+          -Force `
+          -PassThru `
+      | Add-Member `
+          -Name "TrustedAppProtocolVersionSigners" `
+          -Value @($publicKey) `
+          -MemberType NoteProperty `
+          -Force `
+          -PassThru
+    if ($null -ne $configType) {
+      $configJson.Network = $configJson.Network `
+        | Add-Member `
+            -Name "PeerStrings" `
+            -Value @("$publicKey,localhost,31234") `
+            -MemberType NoteProperty `
+            -Force `
+            -PassThru
+    }
+    $configJson `
+      | ConvertTo-Json -Depth 100 `
+      | Set-Content -Encoding utf8 $file
   }
 
+  $keyInfoText = "A private key that can be used for validation is generated.`n`n" + `
+    "- Key ID: ``$keyId```n" + `
+    "- Address: ``$address```n" + `
+    "- Passphrase: ``$passphrase```n`n" + `
+    "----`n`n"
+  $readmePath = Join-Path $workDir "README.md"
+  $readmeText = $keyInfoText + (Get-Content -Encoding utf8 $readmePath -Raw)
+  $readmeText | Set-Content -Encoding utf8 $readmePath
+
   Remove-Item -Recurse $PSScriptRoot -ErrorAction SilentlyContinue
-} finally {
+} catch {
   dotnet planet key remove --passphrase="$passphrase" "$keyId"
   if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to remove the temporary private key: $keyId"

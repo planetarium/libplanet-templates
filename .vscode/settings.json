@@ -1,3 +1,6 @@
 {
-  "omnisharp.defaultLaunchSolution": "Libplanet.Template.sln"
+  "omnisharp.defaultLaunchSolution": "Libplanet.Template.sln",
+  "github.copilot.enable": {
+    "*": true,
+  }
 }

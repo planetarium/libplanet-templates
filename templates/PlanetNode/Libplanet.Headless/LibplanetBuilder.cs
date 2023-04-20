@@ -10,6 +10,8 @@ using Libplanet.Blockchain.Policies;
 using Libplanet.Blocks;
 using Libplanet.Crypto;
 using Libplanet.Net;
+using Libplanet.Net.Consensus;
+using Libplanet.Net.Transports;
 using Libplanet.Store;
 using Serilog;
 
@@ -20,7 +22,7 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
     private IBlockPolicy<T>? _blockPolicy;
     private DifferentAppProtocolVersionEncountered? _differentApvEncountered;
     private IImmutableSet<Currency>? _nativeTokens;
-    private PrivateKey? _minerPrivateKey;
+    private PrivateKey? _validatorPrivateKey;
 
     public ILibplanetBuilder<T> UseConfiguration(Configuration configuration)
     {
@@ -63,9 +65,9 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
         return this;
     }
 
-    public ILibplanetBuilder<T> UseMiner(PrivateKey privateKey)
+    public ILibplanetBuilder<T> UseValidator(PrivateKey privateKey)
     {
-        _minerPrivateKey = privateKey;
+        _validatorPrivateKey = privateKey;
         return this;
     }
 
@@ -138,31 +140,6 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
         );
     }
 
-    private SwarmOptions GetSwarmOptions()
-    {
-        var peers = _configuration.PeerStrings
-            .Select(BoundPeer.ParsePeer)
-            .ToImmutableList();
-        return new SwarmOptions
-        {
-            StaticPeers = _configuration.StaticPeerStrings
-                .Select(BoundPeer.ParsePeer)
-                .ToImmutableHashSet(),
-            BucketSize = _configuration.BucketSize,
-            MinimumBroadcastTarget = _configuration.MinimumBroadcastTarget,
-            BootstrapOptions = new BootstrapOptions
-            {
-                SeedPeers = peers,
-            },
-            TimeoutOptions = new TimeoutOptions
-            {
-                MaxTimeout = TimeSpan.FromSeconds(50),
-                GetBlockHashesTimeout = TimeSpan.FromSeconds(50),
-                GetBlocksBaseTimeout = TimeSpan.FromSeconds(5),
-            }
-        };
-    }
-
     public InstantiatedNodeComponents<T> Build()
     {
         if (_configuration.StoreUri is not {} storeUri)
@@ -175,61 +152,114 @@ internal sealed class LibplanetBuilder<T> : ILibplanetBuilder<T>
         (IStore store, IStateStore stateStore) = LoadStore(storeUri);
         var blockPolicy = _blockPolicy ?? new BlockPolicy<T>(
             nativeTokens: _nativeTokens);
-        var stagePolicy = new VolatileStagePolicy<T>(
-            TimeSpan.FromMinutes(_configuration.TxLifetimeMins)
-        );
-        var blockChain = new BlockChain<T>(
-            blockPolicy,
-            stagePolicy,
-            store,
-            stateStore,
-            GetGenesisBlock()
-        );
-        var apvOptions = new AppProtocolVersionOptions
+        var stagePolicy = new VolatileStagePolicy<T>(_configuration.TxLifetime);
+        var genesis = GetGenesisBlock();
+        var blockChain = store.GetCanonicalChainId() is not null
+            ? new BlockChain<T>(
+                blockPolicy,
+                stagePolicy,
+                store,
+                stateStore,
+                genesis)
+            : BlockChain<T>.Create(
+                blockPolicy,
+                stagePolicy,
+                store,
+                stateStore,
+                genesis);
+
+        if (_configuration.Network is not { } netConfig)
         {
-            AppProtocolVersion = _configuration.AppProtocolVersion is {} apv
-                ? AppProtocolVersion.FromToken(apv)
-                : throw new MissingConfigurationFieldException(
-                    nameof(_configuration.AppProtocolVersion)
-                ),
-            TrustedAppProtocolVersionSigners =
-                _configuration.TrustedAppProtocolVersionSigners
-                    ?.Select(hex => new PublicKey(ByteUtil.ParseHex(hex)))
-                    ?.ToImmutableHashSet(),
-        };
+            return new InstantiatedNodeComponents<T>(
+                store,
+                stateStore,
+                blockChain,
+                null,
+                null,
+                _validatorPrivateKey,
+                _configuration.ValidatorDriver);
+        }
+
+        var apvOptions = netConfig.GetAppProtocolVersionOptions();
         if (_differentApvEncountered is not null)
         {
             apvOptions.DifferentAppProtocolVersionEncountered = _differentApvEncountered;
         }
 
         var random = new Random();
-        var hostOptions = new HostOptions(
-            host: _configuration.Host,
-            iceServers: _configuration.IceServerUris
-                .Select(uri => new IceServer(uri))
-                .OrderBy(_ => random.Next()),
-            port: _configuration.Port
-        );
+
+        var swarmOptions = netConfig.GetSwarmOptions();
 
         // TODO: Swarm private key should be configurable:
+        var transport = NetMQTransport.Create(
+            new PrivateKey(),
+            apvOptions,
+            netConfig.GetHostOptions(),
+            swarmOptions.MessageTimestampBuffer)
+            .ConfigureAwait(false).GetAwaiter().GetResult();
+
+        NetMQTransport? consensusTransport = null;
+        ConsensusReactorOption? consensusReactorOption = null;
+        if (_validatorPrivateKey is { } pk)
+        {
+            if (netConfig.ConsensusHost is null)
+            {
+                throw new Libplanet.Headless.MissingConfigurationFieldException(
+                    "Consensus host must be set when the node is a validator"
+                    + " participating in a consensus.",
+                    nameof(netConfig.ConsensusHost)
+                );
+            }
+
+            if (netConfig.ConsensusPort == netConfig.Port)
+            {
+                throw new Libplanet.Headless.ConflictingConfigurationException(
+                    "Consensus port and port must be different.",
+                    nameof(netConfig.ConsensusPort),
+                    nameof(netConfig.Port)
+                );
+            }
+
+            consensusTransport =
+                NetMQTransport.Create(
+                        pk,
+                        apvOptions,
+                        netConfig.GetConsensusHostOptions(),
+                        swarmOptions.MessageTimestampBuffer)
+                    .ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
+            consensusReactorOption = new ConsensusReactorOption
+            {
+                SeedPeers = ImmutableList<BoundPeer>.Empty,
+                ConsensusPeers = ImmutableList<BoundPeer>.Empty,
+                ConsensusPort = 0,
+                ConsensusPrivateKey = pk,
+                ConsensusWorkers = 100,
+                TargetBlockInterval =
+                    TimeSpan.FromSeconds(
+                        _configuration.ValidatorDriver.MinimumBlockIntervalSecs),
+            };
+        }
+
         var swarm = new Swarm<T>(
             blockChain,
             new PrivateKey(),
-            apvOptions,
-            hostOptions,
-            GetSwarmOptions()
-        );
+            transport,
+            swarmOptions,
+            consensusTransport,
+            consensusReactorOption);
+        var bootstrapMode = netConfig.PeerStrings.Any() || netConfig.StaticPeerStrings.Any()
+            ? SwarmService<T>.BootstrapMode.Participant
+            : SwarmService<T>.BootstrapMode.Seed;
 
-        return new InstantiatedNodeComponents<T>()
-        {
-            Store = store,
-            StateStore = stateStore,
-            BlockChain = blockChain,
-            Swarm = swarm,
-            MinerPrivateKey = _minerPrivateKey,
-            SwarmMode = _configuration.PeerStrings.Any() || _configuration.StaticPeerStrings.Any()
-                ? SwarmService<T>.Mode.Node
-                : SwarmService<T>.Mode.StandaloneNode,
-        };
+        return new InstantiatedNodeComponents<T>(
+            store,
+            stateStore,
+            blockChain,
+            swarm,
+            bootstrapMode,
+            _validatorPrivateKey,
+            _configuration.ValidatorDriver);
     }
 }

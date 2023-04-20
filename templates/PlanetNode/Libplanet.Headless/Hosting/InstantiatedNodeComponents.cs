@@ -3,16 +3,17 @@ namespace Libplanet.Headless.Hosting;
 using Libplanet.Action;
 using Libplanet.Blockchain;
 using Libplanet.Crypto;
-using Libplanet.Net;
 using Libplanet.Store;
+using Libplanet.Net;
 
-public readonly record struct InstantiatedNodeComponents<T>
-    where T : IAction, new()
-{
-    public IStore Store { get; init; }
-    public IStateStore StateStore { get; init; }
-    public BlockChain<T> BlockChain { get; init; }
-    public Swarm<T> Swarm { get; init; }
-    public PrivateKey? MinerPrivateKey { get; init; }
-    public SwarmService<T>.Mode SwarmMode { get; init; }
-}
+
+
+public record InstantiatedNodeComponents<T>(
+    IStore Store,
+    IStateStore StateStore,
+    BlockChain<T> BlockChain,
+    Swarm<T>? Swarm,
+    SwarmService<T>.BootstrapMode? BootstrapMode,
+    PrivateKey? ValidatorPrivateKey,
+    ValidatorDriverConfiguration ValidatorDriverConfiguration
+) where T : IAction, new();

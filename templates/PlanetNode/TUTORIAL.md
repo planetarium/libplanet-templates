@@ -1,151 +1,126 @@
 Tutorial
 ========
-This tutorial introduces how to mint and send tokens on planet-node.
+This tutorial introduces how to mint and send tokens on the application.
 
-Creating Account
-----------------
+Starting the node for the first time
+------------------------------------
 
-Before testing, you need to create a keystore if there isn't one.
-`planet-node` includes subcommands for this purpose.
+Let's try our node out for the first time.
 
-```bash
-$ dotnet run --project PlanetNode -- key
-
-Building...
-Key ID Address
------- -------
-
-$ dotnet run --project PlanetNode -- key create
-Building...
-Passphrase: *
-Retype passphrase: *
-# Key ID and Address will be different.
-Key ID                               Address
------------------------------------- ------------------------------------------
-0be94e73-63a3-4ef8-b727-fad383726728 0x25924579F8f1D6a0edE9aa86F9522e44EbC74C26
+```console
+dotnet run --project PlanetNode
 ```
 
-The key is stored in:
-- Linux/macOS: `$HOME/.config/planetarium/keystore`
-- Windows: `%AppData%\planetarium\keystore`
+Then, navigate to the GraphQL Playground at `http://localhost:38080/ui/playground` in a web browser and execute the following query to check the balance. There should be a private key generated for you by the template, and README.md should be containing the address for the key. Remember, that locally generated private keys are not secure, and you should not use them in production.
 
-Adjusting the Genesis Action
-------------------------
-
-After creating the key pair, you should include them for the initial token distribution.
-The initial token distribution is done within the `InitalizeStates` action and you can
-adjust the token distribution scheme in `Program.cs`.
-
-```csharp
-    builder.Services
-        .AddLibplanet<PolymorphicAction<BaseAction>>(
-            headlessConfig,
-            new PolymorphicAction<BaseAction>[]
-            {
-                new InitializeStates(
-                    new Dictionary<Address, FungibleAssetValue>
-                    {
-                        // Replace with your account address (no "0x" prefix).
-                        // 1000 is mint amount.
-                        [new Address("25924579F8f1D6a0edE9aa86F9522e44EbC74C26")] = Currencies.KeyCurrency * 1000,
-                    }
-                )
-            }
-        )
-```
-
-Note: The `InitializeState` action is recorded in the genesis block and is executed only once, so if there is already a genesis block created by running planet-node before a change was made in the token distribution scheme, you must delete the entire directory containing the chain and re-run planet-node for the new scheme to take place.
-
-Check the balance
------------------
-Tokens that are included in the initial distribution scheme are minted automatically when the genesis block is created and executed. To verify that the genesis block generation and the token distribution has been successful, do the following:
-
-In sh/bash/zsh (Linux or macOS):
+First, find out the address in the README.md file.
 
 ```sh
-$ dotnet run --project PlanetNode
-Building...
-warn: Microsoft.AspNetCore.Server.Kestrel[0]
-      Overriding address(es) 'https://localhost:7040, http://localhost:5005'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
-info: Microsoft.Hosting.Lifetime[14]
-      Now listening on: http://0.0.0.0:38080
-info: Microsoft.Hosting.Lifetime[0]
-      Application started. Press Ctrl+C to shut down.
-info: Microsoft.Hosting.Lifetime[0]
-      Hosting environment: Development
-info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/longfin/planet-node/PlanetNode/
+head README.md  # Or on Windows: cat README.md | select -first 5
 ```
 
-Or in PowerShell (Windows):
-
-```
-PS > dotnet run --project PlanetNode
-```
-
-Then, navigate to the GraphQL Playground at `http://localhost:38080/ui/playground` in a web browser and execute the following query to check the balance:
+Then, use the query to check the balance.
 
 ```gql
 query
 {
-  asset(address: "25924579F8f1D6a0edE9aa86F9522e44EbC74C26")
+  asset(address: "0x986d3cb278d14d44bba2959d9EBCe244D9FA843f")
 }
 ```
 
-<img width="960" alt="image" src="https://user-images.githubusercontent.com/128436/166153745-7707d3a4-ece8-4ce6-a9ef-38c430fce603.png">
-
-Transferring Assets
--------------------
-
-### Enabling mining
-
-By default, planet-node does not start the mining task (`MinerService<BaseAction>`). To start the miner, you need to provide it with a private key.
-
-Execute the following commands to generate a new private key for the miner.
-
-```bash
-$ dotnet run --project PlanetNode -- key generate
-# Private Key and Address will be different.
-Private key                                                      Address
----------------------------------------------------------------- ------------------------------------------
-737b523d7d5594fabb1f37bbba712412034b02428568599ffec2ccc4a042ffc1 0x4b2fA0Fdf369364550259A351531cf410f43C111
-```
-
-As the name suggests, the `key generate` command generates a private key for a new account. You can feed it to the miner through the `PN_MinerPrivateKeyString` environment variable or the `appsettings.json` file.
-
-
-In sh/bash/zsh (Linux or macOS):
-
-```sh
-$ export PN_MinerPrivateKeyString=737b523d7d5594fabb1f37bbba712412034b02428568599ffec2ccc4a042ffc1
-```
-
-Or in PowerShell (Windows):
-
-```pwsh
-PS > $Env:PN_MinerPrivateKeyString="737b523d7d5594fabb1f37bbba712412034b02428568599ffec2ccc4a042ffc1"
-```
-
-Or in the `appsettings.json` file:
+Response:
 
 ```json
 {
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  // other settings
-  "MinerPrivateKeyString": "737b523d7d5594fabb1f37bbba712412034b02428568599ffec2ccc4a042ffc1"
+  "data": {
+    "asset": "0 PNG"
+  }
 }
 ```
 
+Dealing with Assets
+-------------------
+
+One of the features of a blockchain application that intrigues people might be the ability to create and transfer assets. In this section, we will demonstrate how we can mint and transfer assets.
+
+## Enabling validation
+
+By default, the application does not participate in validating new blocks.
+To start validating and to make your node process actions, you need to provide it with a private key that is authorized to validate blocks. The private key generated in the `README.md` file is authorized to validate blocks, so let's use it.
+
+First, stop the running node. Find out the key ID of the private key in the `README.md` file, and provide it in the command line.
+
+```console
+dotnet run --project PlanetNode -- 830fe935-c2f8-4036-b5fe-ec6d2373ccba
+```
+
+Now your node will be validating blocks.
+
+## Minting Assets
+At the moment, your address has no assets. Let's mint some assets to your address.
+
+To mint tokens through GraphQL, execute the `mintAsset()` mutation. `mintAsset()` asks for the recipient's address, the amount to mint, and the minter's private key.
+
+```gql
+mutation {
+  mintAsset(
+    recipient: "0x986d3cb278d14d44bba2959d9EBCe244D9FA843f",
+    amount: "100",
+    privateKeyHex: "9b5429c70a5c81a673deb2705e81b22400e55aae453b29d8ef7f13e68f0e638d"
+  )
+  {
+    id
+    actions {
+      json
+    }
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "mintAsset": {
+      "id": "2ea26127919105e16f675f956fc331864d2499e40f50aa5cf822ca5d3721e8f8",
+      "actions": [
+        {
+          "json": "{\"\\uFEFFamount\":\"100000000000000000000\",\"\\uFEFFcurrency\":{\"\\uFEFFdecimals\":\"18\",\"\\uFEFFminters\":null,\"\\uFEFFticker\":\"\\uFEFFTST\",\"\\uFEFFtotalSupplyTrackable\":true},\"\\uFEFFrecipient\":\"0x986d3cb278d14d44bba2959d9ebce244d9fa843f\"}"
+        }
+      ]
+    }
+  }
+}
+```
+
+Now, check the balance again.
+
+```gql
+query
+{
+  asset(address: "0x986d3cb278d14d44bba2959d9EBCe244D9FA843f")
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "asset": "100 PNG"
+  }
+}
+```
+
+
+## Transferring Assets
+
 ### Creating another account (as the recipient)
-Now let's create another account to receive the tokens. Just use the `key create` command as we did before.
+Now let's create another account to receive the tokens. We will be using the `planet key create` command.
 
 ```bash
-$ dotnet run --project PlanetNode -- key create
+$ dotnet planet key create
 Building...
 Passphrase: *
 Retype passphrase: *
@@ -157,59 +132,30 @@ d8576720-c11a-44ab-9282-9661531f9438 0xA9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A
 
 ### Execute mutation
 
-To transfer tokens through GraphQL, execute the `transferAsset()` mutation. `transferAsset()` asks for the recipient's address, the amount to transfer, and the sender's private key.
-
-```graphql
-transferAsset(
-  recipient: String!
-  amount: String!
-  privateKeyHex: String!
-): Transaction
-```
-
-To retrieve the private key for the sending account(i.e. `25924579F8f1D6a0edE9aa86F9522e44EbC74C26`), use the `key export` command.
-
-```bash
-# Check the Key ID for account
-$ dotnet run --project PlanetNode -- key
-Building...
-Key ID                               Address
------------------------------------- ------------------------------------------
-0be94e73-63a3-4ef8-b727-fad383726728 0x25924579F8f1D6a0edE9aa86F9522e44EbC74C26
-d8576720-c11a-44ab-9282-9661531f9438 0xA9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A
-
-$ dotnet run --project PlanetNode -- key export 0be94e73-63a3-4ef8-b727-fad383726728
-Building...
-Passphrase (of 0be94e73-63a3-4ef8-b727-fad383726728): *
-924a03ecd4a56db981005d3338dfc78dfee673112aa95781b0a5d9668afe3ecd
-```
-
-Then, go to the GraphQL Playground again (`http://localhost:38080/ui/playground`), and execute the following mutation. (Make sure the node is running as a miner)
+Likewise, to transfer tokens through GraphQL, execute the `transferAsset()` mutation. `transferAsset()` asks for the recipient's address, the amount to transfer, and the sender's private key.
 
 ```graphql
 mutation
 {
   transferAsset(
-    recipient: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A"
+    recipient: "0x986d3cb278d14d44bba2959d9EBCe244D9FA843f"
     amount: "50"
-    privateKeyHex: "924a03ecd4a56db981005d3338dfc78dfee673112aa95781b0a5d9668afe3ecd"
+    privateKeyHex: "9b5429c70a5c81a673deb2705e81b22400e55aae453b29d8ef7f13e68f0e638d"
   )
   {
     id
   }
 }
 ```
-<img width="998" alt="image" src="https://user-images.githubusercontent.com/128436/166154488-47dd6056-a260-4667-9d4b-eb4a2acabf1a.png">
 
-After a block is mined, you can check the balances.
+After a block has been added, you can check the balances.
 
 ```graphql
 query
 {
-  asset(address: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A")
+  asset(address: "0x986d3cb278d14d44bba2959d9EBCe244D9FA843f")
 }
 ```
-<img width="896" alt="image" src="https://user-images.githubusercontent.com/128436/166154562-4e471e6d-c5d5-443a-9893-c05c6ba3aa9c.png">
 
 
 Transferring using wallet
@@ -270,90 +216,7 @@ Going Multinode
 
 One of the important features of a blockchain software to achieve decentralization is the ability to establish independent nodes and have them connect to each other, synchronizing the chain state. Libplanet offers the `Swarm<T>` class in Libplanet.Net package, which provides functionality to manage synchronization with peer nodes.
 
-In this section, we learn how to run multiple instances of planet-node that are connected and synchronized with one another. For this purpose, we provide appsettings.peer.json to supply the example settings for the second node. For simplicity, we will enable mining only on the first node.
-
-### Copying the blockchain
-
-First of all, every node of the same blockchain must share at least the genesis block. To achieve this, we will copy the planet-node directory which contains the chain on disk to the planet-node-a directory, which is designated as the store directory in appsettings.peer.json. (Note that when using `dotnet run`, all relative path is resolved relative to the project path, which in this case is the PlanetNode/ directory.) Assuming that you already have initialized the chain and enabled mining on the first node (stop the node first if it is running):
-
-In sh/bash/zsh (Linux or macOS):
-
-```sh
-$ cp -r PlanetNode/planet-node-chain{,-a}
-```
-
-Or in PowerShell (Windows):
-
-```pwsh
-PS > Copy-Item -Path PlanetNode/planet-node-chain -Destination PlanetNode/planet-node-chain-a -recurse
-```
-
-### Acquiring the peer string
-
-For a node to be able to connect to other nodes, it should be aware about the whereabouts of at least a single node connected to the blockchain network. Oftentimes in blockchain networks, there exist some specialized nodes (called the seed nodes) with well-known addresses which provide convenient points for individual nodes to initiate a connection to the network. Since we're establishing ourselves a new blockchain network, we need to provide ourselves with a "seed node" that can be used for other nodes to connect to the network. The specification for a peer is represented with a "peer string", which we have to retrieve from our seed node. We're going to be using our miner node as the seed node, but note that any node exposed to the public network is eligible to be a seed node.
-
-There are currently two methods to retrieve the peer string: from the console log, and with a GraphQL query.
-
-#### Getting the peer string from the console log
-
-Start the miner node and watch the log for the peer string of the node. It should be near the beginning of the log:
-
-```sh
-$ dotnet run --project PlanetNode
-```
-
-```
-[12:23:31 INF] [NetMQTransport] Listening on 31234...
-[12:23:31 DBG] [Swarm] Tip before preloading: #1387 374ff37ead1d1a5d0afb9686a9557256cdda627532261f937d3eda250c311f03
-[12:23:31 INF] [Swarm] Fetching excerpts from 0 peers...
-[12:23:31 INF] [Swarm] There are no appropriate peers for preloading.
-[12:23:31 DBG] [Swarm] Starting swarm...
-[12:23:31 DBG] [Swarm] Peer information : 0x558CfD1a5e8D87d1116e5798736b52B100EF46E3.Unspecified/localhost:31234.
-[12:23:31 DBG] [Swarm] Watching the BlockChain for tip changes...
-warn: Microsoft.AspNetCore.Server.Kestrel[0]
-      Overriding address(es) 'https://localhost:7040, http://localhost:5005'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
-peerString: 035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234.
-```
-
-Here, `035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234` is the peer string. Notice that the trailing period is not included.
-
-#### Querying the node for the peer string
-
-Alternatively, you can query the node with GraphQL for the peer string. Start the miner node, go to the GraphQL Playground of the miner node at http://localhost:38080/ui/playground, and execute the query:
-
-```graphql
-query{
-  peerString
-}
-```
-
-The node will return the peer string along the result, similar to the following:
-
-```json
-{
-  "data": {
-    "peerString": "035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234."
-  }
-}
-```
-
-Again, note that the trailing period is not a part of the peer string.
-
-### Supplying the peer string of the miner node to the second node
-
-Now we provide the peer string to the `appsettings.peer.json` of the second node:
-
-```json
-{
-  // ...
-  "PeerStrings": [
-    "035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234"
-  ],
-  // ...
-}
-```
-
-Then, we can finally start the second node.
+In this section, we learn how to run multiple instances of planet-node that are connected and synchronized with one another. For this purpose, we provide appsettings.peer.json to supply the example settings for the second node.
 
 ### Starting the second node
 
@@ -382,22 +245,22 @@ Now, on the console log of the second node that has just been set up, you will s
 [18:25:59 DBG] [RoutingTable] Adding peer 0xBD465F970c201DFaeDA6de16E83724d8E04c1dDF.Unspecified/localhost:31234. to the routing table...
 ```
 
-You can see here that the second node is pinging the miner node, and then adds the miner peer to the routing table after the miner peer responds in a pong message. Then, the second peer does the following:
+You can see here that the second node is pinging the first node, and then adds the first node to the routing table after the first node responds in a pong message. Then, the second node does the following:
 
- * Requests for the chain status from the miner node
+ * Requests for the chain status from the first node
  * Sees that it needs to catch up on the chain
  * Asks for new blocks before starting to watch for changes in the chain ("preloading")
  * Get the new block hashes and block content, and apply them to the current chain
  * Execute the actions in the new blocks
  * Then, starts the swarm and watch for tip changes in the chain.
 
-You can also see the miner node respond in a corresponding manner. Now the second node is up and running, and follows the changes in the chain as it moves forward.
+You can also see the first node respond in a corresponding manner. Now the second node is up and running, and follows the changes in the chain as it moves forward.
 
 ### Verifying if the second node is functional
 
 In appsettings.peer.json, the second node is set to use 38081/tcp port for the GraphQL server. We will query the two nodes for the same block to see if the nodes are in sync.
 
-Go to the GraphQL Playground of the miner node at http://localhost:38080/ui/playground, change the endpoint to http://localhost:38080/graphql/explorer and query for the tip:
+Go to the GraphQL Playground of the first node at http://localhost:38080/ui/playground, change the endpoint to http://localhost:38080/graphql/explorer and query for the tip:
 
 ```gql
 query
@@ -429,7 +292,7 @@ It should respond in the following manner:
 }
 ```
 
-Take note of the block hash. Now, go to the GraphQL Playground in the second node at http://localhost:38081/ui/playground and query for the block that has the block hash:
+Take note of the block hash. Now, go to the GraphQL Playground in the second node at http://localhost:38081/ui/playground, change the endpoint to http://localhost:38080/graphql/explorer and query for the block that has the block hash:
 
 ```gql
 query {
@@ -442,7 +305,7 @@ query {
 }
 ```
 
-You can see in the result that the block is on the same height in the second node as the miner node:
+You can see in the result that the block is on the same height in the second node as the first node:
 
 ```json
 {
@@ -456,11 +319,11 @@ You can see in the result that the block is on the same height in the second nod
 }
 ```
 
-From these results, we can confirm that the second node is successfully running and receiving new blocks from the miner node.
+From these results, we can confirm that the second node is successfully running and receiving new blocks from the first node.
 
 ### Querying the chain on the second node
 
-As with the miner node, we can also query the second node for data on the chain. In the GraphQL Playground of the second node at http://localhost:38081/ui/playground:
+As with the first node, we can also query the second node for data on the chain. In the GraphQL Playground of the second node at http://localhost:38081/ui/playground:
 
 ```gql
 query
@@ -481,7 +344,7 @@ You can see that it successfully retrieves the balance:
 
 ### Mutation on the second node
 
-Although the second node does not have the miner running, it should be able to broadcast the signed transaction to the miner node and have the transaction included in a block, changing the chain state. We can demonstrate this by initiating an asset transfer on the second node:
+Although the second node does not have the validator running, it should be able to broadcast the signed transaction to the validator node and have the transaction included in a block, changing the chain state. We can demonstrate this by initiating an asset transfer on the second node:
 
 On the GraphQL Playground of the second node at http://localhost:38081/ui/playground:
 
@@ -489,9 +352,9 @@ On the GraphQL Playground of the second node at http://localhost:38081/ui/playgr
 mutation
 {
   transferAsset(
-    recipient: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A"
+    recipient: "0x986d3cb278d14d44bba2959d9EBCe244D9FA843f"
     amount: "50"
-    privateKeyHex: "924a03ecd4a56db981005d3338dfc78dfee673112aa95781b0a5d9668afe3ecd"
+    privateKeyHex: "9b5429c70a5c81a673deb2705e81b22400e55aae453b29d8ef7f13e68f0e638d"
   )
   {
     id
@@ -549,7 +412,7 @@ Now you can query the recipient's balance to see if the asset has been successfu
 ```graphql
 query
 {
-  asset(address: "A9Ce73B2B1EB603A10A6b50CF9f37fBa59e7a79A")
+  asset(address: "0x986d3cb278d14d44bba2959d9EBCe244D9FA843f")
 }
 ```
 
@@ -564,3 +427,64 @@ You will get a response like the following if the transfer was successfully made
 ```
 
 Now that we can see that the nodes are working in tandem, you can go crazy and try out other network structures by establishing other nodes and connecting them to each other!
+
+Appendix
+--------
+
+Creating Account
+----------------
+
+```bash
+$ dotnet planet key
+
+Building...
+Key ID Address
+------ -------
+
+$ dotnet planet key create
+Building...
+Passphrase: *
+Retype passphrase: *
+# Key ID and Address will be different.
+Key ID                               Address
+------------------------------------ ------------------------------------------
+0be94e73-63a3-4ef8-b727-fad383726728 0x25924579F8f1D6a0edE9aa86F9522e44EbC74C26
+```
+
+The key is stored in:
+- Linux/macOS: `$HOME/.config/planetarium/keystore`
+- Windows: `%AppData%\planetarium\keystore`
+
+### Acquiring the peer string
+
+For a node to be able to connect to other nodes, it should be aware about the whereabouts of at least a single node connected to the blockchain network. Oftentimes in blockchain networks, there exist some specialized nodes (called the seed nodes) with well-known addresses which provide convenient points for individual nodes to initiate a connection to the network. Since we're establishing ourselves a new blockchain network, we need to provide ourselves with a "seed node" that can be used for other nodes to connect to the network. The specification for a peer is represented with a "peer string", which we have to retrieve from our seed node. We're going to be using our miner node as the seed node, but note that any node exposed to the public network is eligible to be a seed node.
+
+You can query the node with GraphQL for the peer string. Start the miner node, go to the GraphQL Playground of the miner node at http://localhost:38080/ui/playground, and execute the query:
+
+```graphql
+query{
+  peerString
+}
+```
+
+The node will return the peer string along the result, similar to the following:
+
+```json
+{
+  "data": {
+    "peerString": "035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234"
+  }
+}
+```
+
+Then, you can provide the peer string to the `appsettings.json`:
+
+```json
+{
+  // ...
+  "PeerStrings": [
+    "035e91ac972827567226c3595b6cd942407ee64043b8760a72f2a051ebc6229d66,localhost,31234"
+  ],
+  // ...
+}
+```

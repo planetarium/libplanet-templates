@@ -24,18 +24,26 @@ public static class LibplanetServicesExtensions
         services.AddSingleton<IStore>(build.Store);
         services.AddSingleton<IStateStore>(build.StateStore);
         services.AddSingleton<BlockChain<T>>(build.BlockChain);
-        services.AddSingleton<Swarm<T>>(build.Swarm);
-        services.AddSingleton(typeof(SwarmService<T>.Mode), build.SwarmMode);
-        services.AddHostedService<SwarmService<T>>();
 
-        if (build.MinerPrivateKey is { } minerPrivateKey)
+        if (build.ValidatorDriverConfiguration is { } validatorDriverConfiguration)
         {
-            services.AddHostedService(provider =>
-                new MinerService<T>(
-                    provider.GetRequiredService<BlockChain<T>>(),
-                    minerPrivateKey
-                )
-            );
+            services.AddSingleton<ValidatorDriverConfiguration>(validatorDriverConfiguration);
+        }
+
+        if (build.ValidatorPrivateKey is { } validatorPrivateKey)
+        {
+            services.AddSingleton<ValidatorPrivateKey>(new ValidatorPrivateKey(validatorPrivateKey));
+        }
+
+        if (build.Swarm is { } swarm && build.BootstrapMode is { } bootstrapMode)
+        {
+            services.AddSingleton<Swarm<T>>(swarm);
+            services.AddSingleton(typeof(SwarmService<T>.BootstrapMode), bootstrapMode);
+            services.AddHostedService<SwarmService<T>>();
+        }
+        else if (build.ValidatorPrivateKey is not null)
+        {
+            services.AddHostedService<SoloValidationService<T>>();
         }
 
         return services;
