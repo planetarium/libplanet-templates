@@ -93,6 +93,14 @@
         }
       ],
       "description": "Run '.templates.scripts/GenerateDefaults.ps1' script to generate the default configuration."
+    },
+    {
+      "actionId": "AC1156F7-BB77-4DB8-B28F-24EEBCCA1E5C",
+      "manualInstructions": [
+        {
+          "text": "A private key that can be used for validation is generated.  See also the README.md file."
+        }
+      ]
     }
   ]
 }

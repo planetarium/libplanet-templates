@@ -22,8 +22,8 @@ public class Mutation : ObjectGraphType
         "SA1118:ParameterMustNotSpanMultipleLines",
         Justification = "GraphQL docs require long lines of text.")]
     public Mutation(
-        Swarm<PolymorphicAction<BaseAction>> swarm,
-        BlockChain<PolymorphicAction<BaseAction>> blockChain
+        BlockChain<PolymorphicAction<BaseAction>> blockChain,
+        Swarm<PolymorphicAction<BaseAction>>? swarm = null
     )
     {
         Field<TransactionType<PolymorphicAction<BaseAction>>>(
@@ -42,7 +42,7 @@ public class Mutation : ObjectGraphType
                 byte[] payload = ByteUtil.ParseHex(payloadHex);
                 var tx = Transaction<PolymorphicAction<BaseAction>>.Deserialize(payload);
                 blockChain.StageTransaction(tx);
-                swarm.BroadcastTxs(new[] { tx });
+                swarm?.BroadcastTxs(new[] { tx });
                 return tx;
             }
         );
@@ -52,9 +52,9 @@ public class Mutation : ObjectGraphType
         Field<TransactionType<PolymorphicAction<BaseAction>>>(
             "transferAsset",
             description: "Transfers the given amount of PNG from the account of the specified " +
-                "privateKeyHex to the specified recipient.  A made transaction is signed using " +
-                "the privateKeyHex and added to the pending list (and eventually included in " +
-                "one of the next blocks).",
+                "privateKeyHex to the specified recipient.  The transaction is signed using " +
+                "the privateKeyHex and added to the stage (and eventually included in one of " +
+                "the next blocks).",
             arguments: new QueryArguments(
                 new QueryArgument<NonNullGraphType<StringGraphType>>
                 {
@@ -94,7 +94,58 @@ public class Mutation : ObjectGraphType
                     ImmutableHashSet<Address>.Empty
                         .Add(privateKey.ToAddress())
                         .Add(recipient));
-                swarm.BroadcastTxs(new[] { tx });
+                swarm?.BroadcastTxs(new[] { tx });
+                return tx;
+            }
+        );
+
+        // TODO: This mutation should be upstreamed to Libplanet.Explorer so that any native tokens
+        // can work together with this mutation:
+        Field<TransactionType<PolymorphicAction<BaseAction>>>(
+            "mintAsset",
+            description: "Mints the given amount of PNG to the balance of the specified " +
+                "recipient. The transaction is signed using the privateKeyHex and added to " +
+                "the stage (and eventually included in one of the next blocks).",
+            arguments: new QueryArguments(
+                new QueryArgument<NonNullGraphType<StringGraphType>>
+                {
+                    Name = "recipient",
+                    Description = "The recipient's 40-hex address.",
+                },
+                new QueryArgument<NonNullGraphType<StringGraphType>>
+                {
+                    Name = "amount",
+                    Description = "The amount to mint in PNG.",
+                },
+                new QueryArgument<NonNullGraphType<StringGraphType>>
+                {
+                    Name = "privateKeyHex",
+                    Description = "A hex-encoded private key of the minter.  A made " +
+                        "transaction will be signed using this key.",
+                }
+            ),
+            resolve: context =>
+            {
+                Address recipient = new Address(context.GetArgument<string>("recipient"));
+                string amount = context.GetArgument<string>("amount");
+                string privateKeyHex = context.GetArgument<string>("privateKeyHex");
+
+                PrivateKey privateKey = PrivateKey.FromString(privateKeyHex);
+                var action = new Mint(
+                    recipient,
+                    FungibleAssetValue.Parse(
+                        Currencies.KeyCurrency,
+                        amount
+                    )
+                );
+
+                var tx = blockChain.MakeTransaction(
+                    privateKey,
+                    action,
+                    ImmutableHashSet<Address>.Empty
+                        .Add(privateKey.ToAddress())
+                        .Add(recipient));
+                swarm?.BroadcastTxs(new[] { tx });
                 return tx;
             }
         );

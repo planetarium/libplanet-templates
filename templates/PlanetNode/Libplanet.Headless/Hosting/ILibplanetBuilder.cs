@@ -19,7 +19,7 @@ public interface ILibplanetBuilder<T>
 
     ILibplanetBuilder<T> UseNativeTokens(IImmutableSet<Currency> nativeTokens);
 
-    ILibplanetBuilder<T> UseMiner(PrivateKey privateKey);
+    ILibplanetBuilder<T> UseValidator(PrivateKey privateKey);
 
     InstantiatedNodeComponents<T> Build();
 }

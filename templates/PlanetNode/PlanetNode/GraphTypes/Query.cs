@@ -18,7 +18,7 @@ public class Query : ObjectGraphType
         Justification = "GraphQL docs require long lines of text.")]
     public Query(
         BlockChain<PolymorphicAction<BaseAction>> blockChain,
-        Swarm<PolymorphicAction<BaseAction>> swarm)
+        Swarm<PolymorphicAction<BaseAction>>? swarm = null)
     {
         Field<StringGraphType>(
             "asset",
@@ -46,21 +46,8 @@ public class Query : ObjectGraphType
         Field<StringGraphType>(
             "peerString",
             resolve: context =>
-            {
-                var peer = swarm.AsPeer;
-                var peerString = GetPeerString(peer);
-
-                return peerString;
-            }
-        );
-    }
-
-    private static string GetPeerString(BoundPeer peer)
-    {
-        var pubKey = peer.PublicKey.ToString();
-        var hostAndPort = peer.ToString().Split('/')[1];
-        var host = hostAndPort.Split(':')[0];
-        var port = hostAndPort.Split(':')[1];
-        return $"{pubKey},{host},{port}";
+                swarm is null
+                ? throw new InvalidOperationException("Network settings is not set.")
+                : swarm.AsPeer.PeerString);
     }
 }

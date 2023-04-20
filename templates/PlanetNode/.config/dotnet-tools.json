@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "libplanet.tools": {
-      "version": "0.47.0-dev.20230131060611",
+      "version": "1.0.0",
       "commands": [
         "planet"
       ]
